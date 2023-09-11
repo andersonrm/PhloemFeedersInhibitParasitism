@@ -1,0 +1,2160 @@
+---
+title: "Phloem Feeding Insects Inhibit Caterpillar Parasitism"
+author: "Riley M. Anderson"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+graphics: yes
+output:
+  github_document:
+    toc: yes
+  html_document:
+    keep_md: yes
+    theme: readable
+  html_notebook:
+    code_folding: hide
+    theme: readable
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include = F}
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@ Knitr Options
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+# Set root directory to the project directory
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+
+
+# Set default knitr options: 
+# Suppress warnings and messages, cache chunks, 
+#  set default figure size to 6x8 at 300 dpi, and save a png and pdf
+knitr::opts_chunk$set(warning = F, message = F, collapse = T, cache = T,
+    fig.height = 6, fig.width = 8, dpi = 300, # 6x8" @ 300dpi:1800x2400=4.3MP
+    dev = c('png', 'pdf'), dev.args = list(pdf = list(onefile = F)))
+
+```
+
+
+
+
+
+```{r Main_Code, include = F, cache = F}
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@ Setup - This code is run, but output is hidden
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+# Load Packages
+library(tidyverse) # Needed for data wrangling: dplyr, tidyr, ggplot2
+library(cowplot) # Needed for publication-quality ggplots
+library(ggthemes) # Needed for tufte_theme
+library(sjPlot)
+library(lme4)
+library(glmmTMB)
+library(knitr)
+library(vegan)
+library(emmeans)
+library(forcats)
+
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@ Data Preparation
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+# Import datasets
+
+
+# 2019 OBSERVATIONAL DATA
+obs <- read.csv("data/sf.setup.2019.csv")
+
+
+# 2019 EXPERIMENTAL DATA
+exp <- read.csv("data/sf.sample.2019.csv")
+
+
+# 2019 NO CHOICE ASSAY
+choice <- read.csv("data/no.choice.leaf.area.2019.csv")
+
+
+# 2019 TRAP DATA
+traps <- read.csv("data/traps.2019.csv")
+
+
+# TRAP INFO
+trap.info <- read.csv("data/trap.info.csv")
+
+
+# 2019 CATERPILLAR FATES
+fates <- read.csv("data/caterpillar.morgue.2019.csv")
+
+###################
+# 2020
+
+# caterpillar.data for no choice assay 2020
+no.choice2020 <- read.csv("data/no.choice.cat.data2020.csv")
+
+# canopy.data for no choice assay 2020
+canopy2020 <- read.csv("data/canopy2020.csv")
+
+# consumption.data for no choice assay 2020
+consumption <- read.csv("data/consumption2020.csv")
+
+# parasitoid traps 2020
+para.traps2020 <- read.csv("data/para.traps2020.csv")
+
+# Parasitoid rearing data 2020
+para2020 <- read.csv("data/para.data2020.csv")
+
+###########
+# 2021 #
+###########
+
+# 2021 phloem-feeder feeding assay data:
+pf21 <- read.csv("data/PF.feeding.assay.21.csv")
+
+# 2021 Parasitoid rearing data
+para21 <- read.csv("data/rearing.2021.clean.csv")
+
+
+################
+##  2022      ##
+################
+
+pf22 <- read.csv("data/ant.pf.2022.csv")
+
+
+##############
+# Parasitism by caterpillar species
+cat.spp.para <- read.csv("data/cat.spp.para.records.csv")
+
+# Parasitism by caterpillar species and phloem-feeder treatment
+para.pf <- read.csv("data/para.by.cat.spp.19.20.21.22.csv")
+
+##############
+# Volatile metadata for Andre
+vmd20 <- read.csv("data/volatile.meta.2020.csv")
+vmd21 <- read.csv("data/volatile.meta.2021.csv")
+vmd.hormone <- read.csv("data/volatile.meta.hormone.2021.csv")
+vmd <- read.csv("data/volatile.meta.reduced.csv")
+
+
+##############
+# caterpillar/pf records from 2011
+para2011 <- read.csv("data/2011.para.csv")
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@ ggPlot Theme
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ggplot.theme <- theme(
+    
+    # Text size for axis ticks
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14),
+    
+    # Text size for axis labels
+    # Also move them away from the axes a bit for more space
+    axis.title.x = element_text(size = 18, face = "bold", vjust = -1),
+    axis.title.y = element_text(size = 18, face = "bold", vjust = 1.5),
+    
+    # Plot title size
+    plot.title = element_text(size = 20, face = "bold"),
+    
+    # Margins for top, right, bottom, left
+    plot.margin = grid::unit(c(1.5, 1.5, 1.5, 1.2), "lines"), 
+    
+    # Legend text size
+    legend.text = element_text(size = 14),
+    legend.text.align = 0, 
+    legend.title = element_text(size = 16, face = "bold"),
+    legend.key.size = grid::unit(1.4, "line"),
+    legend.key = element_blank()
+    )
+
+####################################################
+# Functions
+####################################################
+
+overdispersion_test <- function(model, type = "pearson"){
+    
+    # Get the pearson residuals
+    residuals <- resid(model, type = type)
+    
+    # Get the residual degrees of freedom of the model
+    df <- df.residual(model)
+    
+    # Sum of residual deviance
+    dev <- sum(residuals ^ 2)
+    
+    # Overdispersion = sum of squared residuals / residual degrees of freedom
+    ratio <- round(dev / df, 3)
+    
+    # P-value 
+    pvalue <- round(pchisq(dev, df, lower.tail = FALSE), 3)
+    
+    # Get the formula
+    f = paste(as.character(formula(model))[2:3], collapse = " ~ ")
+    
+    # Get the model name
+    name <- deparse(substitute(model))
+    cat("Overdispersion ratio for model:", name, "\nformula:", f, 
+        "\n\nAcceptable range: 1 - 1.4\nOverdispersion ratio:",
+        ratio, " df:", df, " p =", pvalue, "\n", 
+        ifelse(pvalue < 0.05, "Data are overdispersed\n", 
+        "Data are not overdispersed\n"))
+    
+    # Return all the parameters
+    return(c(ratio = ratio, deviance = dev, df = df, pvalue = pvalue))
+    
+}
+
+# create a function to scale the range of values so that they are always positive or always negative, respectively
+
+range01 <- function(x){(x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)-min(x, na.rm = TRUE))}
+
+```
+
+
+## Overview
+
+This analysis looks at data collected in May and June of 2019,2020, 2021, and 2022. Observational data explore patterns of species richness in both forest edge and interior habitat. Additionally, this analysis explores the role of biotic interactions across different habitat types.
+
+Experimental data examine the effects of membracid sap-feeders and ants on caterpillar abundance in a forest edge effect context.
+
+### Summary of Results
+* Across 4 years, we sampled branches on white oak (*Quercus alba*) trees. 
+
+* In 2019 and 2022 we implemented a factorial ant and phloem-feeder exclusion experiment. These experiments show that ants had no effect on parasitism. The distribution of parasitized caterpillars was essentially random across ant treatments (Fisher's exact test: *P* = 0.570, two-tailed test).
+
+* Across all four years, caterpillars were never parasitized in the presence of phloem-feeding insects (Fisher's exact test: *P* < 0.001, two tailed test).
+
+
+```{r Data_Wrangling, echo = F, comment = ""}
+
+# factoring the metadata for Andre:
+
+vmd.hormone <- vmd.hormone %>% 
+    mutate(across(c(year, site, sorbentID, treatment),
+                  as.factor))
+
+
+vmd20 <- vmd20 %>% 
+    mutate(across(c(year, site, sorbentID, treatment, phloem.feeder),
+                  as.factor))
+
+vmd21 <- vmd21 %>% 
+    mutate(across(c(year, site, sorbentID, treatment, phloem.feeder),
+                  as.factor))
+
+vmd <- vmd %>%
+    mutate(across(c(year, site, sorbentID, treatment, phloem.feeder),
+                  as.factor))
+
+
+write.csv(vmd.hormone,
+          file = "data/vol.meta.hormone.2021.csv",
+          row.names = F)
+
+write.csv(vmd20,
+          file = "data/vol.meta.2020.csv",
+          row.names = F)
+
+write.csv(vmd21,
+          file = "data/vol.meta.2021.csv",
+          row.names = F)
+
+write.csv(vmd,
+          file = "data/volatile.meta.csv",
+          row.names = F)
+
+
+
+# OBSERVATIONAL DATA
+
+
+##########################################
+### Tables of cat spp. for para experiment
+##########################################
+
+
+fates19 <- fates %>% 
+    filter(experiment == "RMA")
+
+exp19 <- exp %>% 
+    select(sampled.cats, catID)
+
+fates19.cats <- left_join(
+    fates19, exp19, by = "catID"
+)
+
+fates19.cats <- na.omit(fates19.cats)
+
+fates19.cats <- fates19.cats %>% 
+    mutate(catID = factor(sampled.cats))
+
+count.spp19 <- fates19.cats %>% 
+    select(catID) %>% 
+    group_by(catID) %>% 
+    tally() %>% 
+    rename(cat.sp = catID) %>% 
+    mutate(year = 2019)
+
+count.spp20 <- para2020 %>% 
+    mutate(cat.species = factor(cat.species)) %>% 
+    select(cat.species) %>% 
+    group_by(cat.species) %>% 
+    tally() %>% 
+    rename(cat.sp = cat.species) %>% 
+    mutate(year = 2020)
+
+count.spp21 <- para21 %>% 
+    mutate(caterpillar.spp = factor(caterpillar.spp)) %>% 
+    select(caterpillar.spp) %>% 
+    group_by(caterpillar.spp) %>% 
+    tally() %>% 
+    rename(cat.sp = caterpillar.spp) %>% 
+    mutate(year = 2021)
+
+para.sample.counts <- bind_rows(count.spp19,
+                                count.spp20,
+                                count.spp21)
+
+write.csv(para.sample.counts, 
+          file = "data/para.sample.spp.counts.csv",
+          row.names = F)
+
+############################################
+# Counts per branch (lumping all species)
+
+obs.no.cats <- obs %>%
+    filter(caterpillar.spp == "no_cats") %>%
+    select(subsite,
+             zone,
+             type,
+             dbh,
+             diameter,
+             branch.length,
+             branchID,
+             treehoppers,
+             scale,
+             sap.feeders,
+             formica,
+             camponotus,
+             temnothorax,
+             crematogaster) %>%
+    mutate(counts = 0)
+
+obs.uncounted <- obs %>%
+    filter(caterpillar.spp != "no_cats") %>%
+    uncount(counts)
+
+obs.cat.counts <- obs.uncounted %>%
+    group_by(subsite,
+             zone,
+             type,
+             dbh,
+             diameter,
+             branch.length,
+             branchID,
+             treehoppers,
+             scale,
+             sap.feeders,
+             formica,
+             camponotus,
+             temnothorax,
+             crematogaster) %>%
+    summarise(counts = length(branchID))
+
+obs.all <- bind_rows(obs.no.cats, obs.cat.counts)
+
+
+obs.all <- obs.all %>%
+    mutate(total.ants = formica +
+               camponotus +
+               temnothorax +
+               crematogaster)
+
+################################################
+
+# Species-level organization:
+
+obs1 <- obs %>%
+    mutate(branchID = paste0(site, branchID),
+           branchID = factor(branchID)) %>%
+    uncount(counts) %>%
+    mutate(total_ants = (formica +
+                             camponotus +
+                             temnothorax +
+                             crematogaster),
+           total_ants = as.numeric(total_ants))
+
+
+
+obs2 <- obs1 %>%
+    group_by(branchID,
+             caterpillar.spp,
+             db,
+             sap.feeders,
+             total_ants,
+             subsite,
+             zone,
+             dbh,
+             diameter,
+             branch.length) %>%
+    summarise(count = n()) %>%
+    ungroup()
+
+
+long.obs <- obs2 %>%
+    complete(nesting(branchID,
+                     db,
+                     sap.feeders,
+                     total_ants,
+                     subsite,
+                     zone,
+                     dbh,
+                     diameter,
+                     branch.length),
+             caterpillar.spp,
+             fill = list(count = 0)) %>%
+    filter(caterpillar.spp != "no_cats")
+
+
+
+
+
+# EXPERIMENTAL DATA
+
+
+
+############################################
+# Counts per branch (lumping all species)
+
+
+exp.no.cats <- exp %>%
+    filter(sampled.cats == "no_cats") %>%
+    select(-site, -sampled.cats, -counts, -catID) %>%
+    mutate(counts = 0)
+
+
+exp.uncounted <- exp %>%
+    filter(sampled.cats != "no_cats") %>%
+    uncount(counts)
+
+
+exp.cat.counts <- exp.uncounted %>%
+    group_by(branchID,
+             mem.treat,
+             ant.treat,
+             zone,
+             edge.dist,
+             sap.feeders,
+             treehoppers.sample,
+             scale.sample,
+             aphid.sample,
+             formica,
+             camponotus,
+             temnothorax,
+             total.ants,
+             ants.sample,
+             other.preds) %>%
+    summarise(counts = length(branchID))
+
+
+exp.all <- bind_rows(exp.no.cats, exp.cat.counts)
+
+
+
+################################################
+
+# Species-level organization:
+
+exp1 <- exp %>%
+    mutate(branchID = paste0(site, branchID)) %>%
+    uncount(counts) %>%
+    rename(caterpillar.spp = sampled.cats)
+
+
+
+exp2 <- exp1 %>%
+    group_by(branchID,
+             caterpillar.spp,
+             db,
+             mem.treat,
+             ant.treat,
+             sap.feeders,
+             total.ants,
+             edge.dist,
+             zone,
+             catID,
+             other.preds) %>%
+    summarise(count = n()) %>%
+    ungroup()
+
+
+long.exp <- exp2 %>%
+    complete(nesting(branchID,
+             db,
+             mem.treat,
+             ant.treat,
+             sap.feeders,
+             total.ants,
+             edge.dist,
+             zone,
+             catID,
+             other.preds),
+             caterpillar.spp,
+             fill = list(count = 0)) %>%
+    filter(caterpillar.spp != "no_cats") %>%
+    mutate(distance = scale(edge.dist))
+
+
+
+
+#####################################
+# NO CHOICE FEEDING ASSAY
+
+choice <- choice %>%
+    mutate(eaten = (area.before - area.after))
+
+
+
+
+#####################################
+# Caterpillar fates
+
+fates1 <- exp %>%
+    select(branchID,
+           mem.treat,
+           ant.treat,
+           sampled.cats,
+           catID,
+           zone,
+           edge.dist) %>%
+    filter(catID != "")
+
+
+fates <- fates %>%
+    select(experiment,
+           catID,
+           fate) %>%
+    mutate(para = ifelse(fate %in% "para", "yes", "no"))
+
+fate <- left_join(fates1, fates, by = "catID")
+
+fate <- fate %>%
+    filter(experiment == "RMA") %>%
+    select(- experiment)
+
+
+fate.wide <- fate %>%
+    group_by(branchID,
+             mem.treat,
+             ant.treat,
+             zone,
+             edge.dist,
+             para) %>%
+    tally() %>%
+    spread(para, n)
+
+
+fate.wide[is.na(fate.wide)] <- 0
+
+fate.wide <- fate.wide %>%
+    mutate(total = no + yes)
+
+fate19 <- fate.wide %>% 
+    ungroup() %>% 
+    select(-branchID,
+           -ant.treat,
+           -zone,
+           -edge.dist,
+           -total) %>% 
+    rename(treatment = mem.treat) %>% 
+    mutate(sap.type = "treehopper")
+
+
+####################################################
+####################################################
+######                  2020                ########
+####################################################
+####################################################
+
+dat1 <- left_join(consumption, no.choice2020, by = "leafID")
+
+dat1 <- dat1 %>% 
+    filter(!is.na(cat.id))
+
+dat2 <- left_join(dat1, canopy2020, by = "branchID")
+
+dat2 <- dat2 %>% 
+    mutate(branchID = factor(branchID))
+
+
+para2020_wide <- para2020 %>% 
+    select(-cat.species) %>% 
+    group_by(branchID,
+             treatment, 
+             parasitized) %>% 
+    tally() %>% 
+    spread(parasitized, n) %>% 
+    ungroup() %>% 
+    select(-branchID)
+
+para2020_wide[is.na(para2020_wide)] <- 0
+
+fate20 <- para2020_wide %>% 
+    mutate(sap.type = "scale")
+
+
+fate19.20 <- bind_rows(fate19, fate20)
+
+
+###########################################
+###########################################
+###########################################
+#####          2011 data             ######
+
+
+para2011.1 <- para2011 %>% 
+    select(Site,
+           CatSp,
+           PlantID,
+           TreeSp,
+           SFcount,
+           Para) %>% 
+    mutate(across(c(Site, PlantID, TreeSp), as.factor)) %>% 
+    mutate(across(c(SFcount, Para), as.numeric))
+
+para2011.1 <- na.omit(para2011.1)
+
+para2011.1 <- para2011.1 %>% 
+    mutate(PF = case_when(SFcount > 0 ~ 'present',
+                          SFcount < 1 ~ 'absent'),
+           para.bin = case_when(Para > 0 ~ 'parasitized',
+                                Para < 1 ~ 'unparasitized'))
+
+tally.para.2011 <- para2011.1 %>% 
+    select(-Site, -PlantID, - SFcount, -Para) %>% 
+    group_by(TreeSp, PF, para.bin) %>% 
+    tally()
+
+white.oak.2011 <- para2011.1 %>% 
+    filter(TreeSp == "WO") %>% 
+    select(PF, para.bin) %>% 
+    group_by(PF, para.bin) %>% 
+    tally()
+
+```
+
+## 2011 parasitism and phloem-feeder models
+
+### White oak
+```{r 2011_para_whiteoak, echo = F}
+kable(white.oak.2011)
+
+wo.2011.mod1 <- glmmTMB(Para ~ PF + (1|Site),
+                        family = binomial(),
+                        data = para2011.1 %>% 
+                            filter(TreeSp == "WO"))
+
+summary(wo.2011.mod1)
+
+
+```
+*No indication of reduced parasitism on white oak.
+
+### 2011 overall:
+```{r 2011_para_data_models, echo = F}
+kable(tally.para.2011)
+
+
+para2011.mod1 <- glmmTMB(Para ~ PF * TreeSp + (1 | CatSp),
+                         family = binomial(),
+                         data = para2011.1)
+
+summary(para2011.mod1)
+
+```
+*No indication of reduced parasitism on any tree species.
+
+
+## Observational data
+* Branches sampled in each subsite
+```{r branches_sampled, echo = F}
+# branches.sampled <- obs.all %>% 
+#     group_by(subsite) %>% 
+#     summarise(branches = n())
+# 
+# kable(branches.sampled, digits = 1, format = "markdown")
+
+```
+
+
+* Chewing insect herbivores/branch in each subsite
+```{r insects_per_branch_subsite, echo = F}
+# obs.insects.subsite <- obs.cat.counts %>% 
+#     group_by(subsite) %>% 
+#     summarise(herbivores = sum(counts))
+# 
+# obs.insects.subsite <- left_join(obs.insects.subsite,
+#                                  branches.sampled,
+#                                  by = "subsite") %>% 
+#     mutate(insects.subsite = herbivores/branches)
+# 
+# 
+# kable(obs.insects.subsite, digits = 2, format = "markdown")
+
+```
+
+* Chewing insect herbivore richness by subsite
+```{r herbivore_richness_subsite, echo = F}
+# obs.richness <- obs %>% 
+#     filter(caterpillar.spp != "no_cats") %>% 
+#     select(subsite, caterpillar.spp) %>% 
+#     distinct() %>% 
+#     group_by(subsite) %>% 
+#     summarise(herbivore.richness = n())
+# 
+# 
+# kable(obs.richness, digits = 1, format = "markdown")
+
+```
+
+* Chewing herbivore Shannon index
+```{r herbivore_diversity_subsite, echo = F}
+# obs.div <- obs %>% 
+#     filter(caterpillar.spp != "no_cats") %>% 
+#     select(subsite, caterpillar.spp, counts) %>% 
+#     uncount(counts) %>% 
+#     group_by(subsite, caterpillar.spp) %>% 
+#     tally() %>% 
+#     spread(caterpillar.spp, n)
+# 
+# obs.div[is.na(obs.div)] <- 0
+# 
+# obs.div.subsites <- obs.div[1]
+# 
+# H <- diversity(obs.div[-1])
+# 
+# obs.H <- data.frame(H)
+# 
+# obs.H <- bind_cols(obs.div.subsites, obs.H)
+# 
+# kable(obs.H, digits = 3, format = "markdown")
+
+```
+
+
+
+* Ant community Shannon index
+```{r ant_diversity_subsite, echo = F}
+# ant.obs.div <- obs.all %>% 
+#     select(subsite,
+#            formica,
+#            camponotus,
+#            temnothorax,
+#            crematogaster) %>% 
+#     gather(species, count, formica:crematogaster) %>% 
+#     uncount(count) %>% 
+#     group_by(subsite, species) %>% 
+#     tally() %>% 
+#     spread(species, n)
+# 
+# 
+# 
+# 
+# ant.obs.div[is.na(ant.obs.div)] <- 0
+# 
+# ant.obs.div.subsites <- ant.obs.div[1]
+# 
+# ant.H <- diversity(ant.obs.div[-1])
+# 
+# ant.obs.H <- data.frame(ant.H)
+# 
+# ant.obs.H <- bind_cols(ant.obs.div.subsites, ant.obs.H)
+# 
+# kable(ant.obs.H, digits = 3, format = "markdown")
+
+```
+
+* Parasitoid community Shannon index
+
+* Parasitoid diversity is weakly and non-significantly correlated with distance to habitat edge.
+```{r para_diversity_subsite, echo = F}
+# para.div <- traps %>% 
+#     select(trapID,
+#            type,
+#            tachinid,
+#            braconid,
+#            ichneumon,
+#            chalcid) %>% 
+#     gather(species, count, tachinid:chalcid) %>% 
+#     uncount(count) %>% 
+#     group_by(trapID, species) %>% 
+#     tally() %>% 
+#     spread(species, n)
+# 
+# 
+# para.div[is.na(para.div)] <- 0
+# 
+# para.div <- left_join(para.div, trap.info, by = "trapID")
+# 
+# para.divID <- para.div %>% 
+#     select(trapID, edge.dist)
+# 
+# para.H <- para.div %>% 
+#     ungroup() %>% 
+#     select(-trapID, -edge.dist) %>% 
+#     diversity() %>% 
+#     data.frame()
+# 
+# colnames(para.H)[1] <- "H"
+# 
+# para.H <- bind_cols(para.divID, para.H)
+# 
+# 
+# kable(para.H, digits = 3, format = "markdown")
+# 
+# 
+# 
+# ggplot(para.H, aes(x = edge.dist,
+#                   y = H)) +
+#     geom_point() +
+#     geom_smooth(method = 'lm') +
+#     ggplot.theme +
+#     labs(x = "Distance to edge (m)",
+#          y = "Shannon Index",
+#          title = "Parasitoid Diversity")
+# 
+# 
+# cor.test(para.H$edge.dist, para.H$H,
+#          method = "pearson")
+# 
+
+
+```
+
+
+* Parasitoid abundance (traps)
+```{r para_abundance_munging, echo = F}
+# 
+# para.abun <- traps %>% 
+#     select(trapID,
+#            tachinid,
+#            braconid,
+#            ichneumon,
+#            chalcid) %>% 
+#     gather(species, count, tachinid:chalcid)
+# 
+# para.abun <- left_join(para.abun, trap.info, by = "trapID")
+# 
+# 
+# para.abun <- para.abun %>% 
+#     mutate(zone = ifelse(str_sub(trapID, 2,2) %in% "P",
+#                          "Edge", "Interior"))
+
+
+```
+
+```{r para_abun_model, echo = F}
+# 
+# hist(para.abun$count)
+# # parasitoid abundance are highly left-skewed and zero inflated
+# 
+# 
+# para.mod1 <- glmmTMB(count ~ scale(edge.dist) +
+#                          (1|species),
+#                      family = poisson(),
+#                      data = para.abun)
+# 
+# overdispersion_test(para.mod1) 
+# # data are slightly overdispersed
+# 
+# para.mod2 <- glmmTMB(count ~ edge.dist +
+#                          (1|species),
+#                      family = poisson(),
+#                      ziformula = ~1,
+#                      data = para.abun)
+# 
+# 
+# para.mod3 <- glmmTMB(count ~ scale(edge.dist) +
+#                          (1|species),
+#                      family = nbinom2(),
+#                      data = para.abun)
+# 
+# para.mod4 <- glmmTMB(count ~ scale(edge.dist) +
+#                          (1|species),
+#                      family = nbinom2(),
+#                      ziformula = ~1,
+#                      data = para.abun)
+# 
+# para.mod5 <- glmmTMB(count ~ zone + (1|species),
+#                      family = poisson(),
+#                      data = para.abun)
+# 
+# para.mod6 <- glmmTMB(count ~ zone + (1|species),
+#                      family = poisson(),
+#                      ziformula = ~1,
+#                      data = para.abun)
+# 
+# 
+# para.mod7 <- glmmTMB(count ~ zone + (1|species),
+#                      family = nbinom2(),
+#                      data = para.abun)
+# 
+# 
+# para.mod8 <- glmmTMB(count ~ zone + (1|species),
+#                      family = nbinom2(),
+#                      ziformula = ~1,
+#                      data = para.abun)
+# 
+# 
+# 
+# AIC(para.mod1,
+#     para.mod2,
+#     para.mod3,
+#     para.mod4,
+#     para.mod5,
+#     para.mod6,
+#     para.mod7,
+#     para.mod8)
+# 
+# # Models with poisson distribution and zero-inflation are best.
+# 
+# plot_model(para.mod2,
+#            show.values = T,
+#            transform = NULL)
+# 
+# summary(para.mod2)
+# 
+# 
+
+
+```
+
+* Parasitoid abundance figures
+```{r para_abun_figure, echo = F}
+# # raw data
+# ggplot(para.abun, aes(x = edge.dist,
+#                       y = count,
+#                       color = species)) +
+#     geom_jitter(size = 2) +
+#     geom_smooth(method = 'glm', 
+#                 method.args = list(family = quasipoisson),
+#                 aes(fill = species),
+#                 alpha = 0.1,
+#                 size = 2,
+#                 show.legend = F) +
+#     ggplot.theme +
+#     labs(x = "Distance to edge (m)",
+#          y = "Parasitoid abundance",
+#          title = "Parasitoid abundance by Edge Distance",
+#          color = "Parasitoid genus") +
+#     scale_color_discrete(labels = c("Tachinidae",
+#                                     "Braconidae",
+#                                     "Ichneumonidae",
+#                                     "Chalcidae")) +
+#     coord_cartesian(ylim = 0:4)
+# 
+# 
+# 
+# # Predicted counts from model:
+# plot_model(para.mod2,
+#            type = "pred",
+#            terms = c("edge.dist", "species"),
+#            pred.type = "re") +
+#     labs(x = "Distance to edge (m)",
+#          y = "Parasitoid abundance",
+#          title = "Predicted parasitoid abundance",
+#          color = "Parasitoid genus") +
+#     ggplot.theme +
+#     scale_color_discrete(labels = c("Tachinidae",
+#                                     "Braconidae",
+#                                     "Ichneumonidae",
+#                                     "Chalcidae"))
+
+```
+
+
+* Probability of parasitism 
+```{r para_prop_figure, echo = F}
+# ggplot(fate.wide, aes(x = edge.dist,
+#                       y = yes/total,
+#                       color = mem.treat,
+#                       size = total)) +
+#     geom_point(aes(size = total)) +
+#     geom_smooth(method = 'glm', 
+#                 method.args = list(family = binomial),
+#                 aes(fill = mem.treat),
+#                 show.legend = F) +
+#     #facet_wrap(~ant.treat) +
+#     ggplot.theme +
+#     labs(x = "Distance to edge (m)",
+#          y = "Pr(parasitism)",
+#          color = "Membracid treatment",
+#          size = "Total no. samples") +
+#     scale_x_continuous(trans = "log10")
+# 
+
+```
+
+
+```{r para_prob_model, echo = F}
+# 
+# fate.mod1 <- glmmTMB(cbind(yes,no) ~ scale(edge.dist) * mem.treat,
+#                      family = binomial(),
+#                      data = fate.wide)
+# 
+# 
+# plot_model(fate.mod1)
+# summary(fate.mod1)
+# # Model is data deficient. Try using contingency table analysis.
+# 
+# 
+# 
+# test <- fate %>% 
+#     select(mem.treat, para) %>% 
+#     group_by(mem.treat,
+#              para) %>% 
+#     complete(nesting(mem.treat), para) %>% 
+#     tally() %>% 
+#     ungroup()
+# 
+# 
+# 
+# para.data <- data.frame(no = c(23, 12),
+#                         yes = c(7, 0))
+# rownames(para.data) <- c("mem.removed","mem.replaced")
+# 
+# 
+# kable(para.data, format = "markdown", digits = 2)
+# 
+# fisher.test(para.data)
+# 
+# 
+# para.fig <- data.frame(sap.feeders = c("removed",
+#                                        "removed",
+#                                        "replaced",
+#                                        "replaced"),
+#                        parasitized = c("no", "yes",
+#                                        "no", "yes"),
+#                        n = c(23, 7, 12, 0))
+# 
+# ggplot(para.fig, aes(x = sap.feeders,
+#                      y = n,
+#                      fill = parasitized)) +
+#     geom_bar(stat = 'identity', position = 'dodge') +
+#     ggplot.theme +
+#     labs(x = "Sap-feeding insects",
+#          y = "Caterpillars recovered",
+#          fill = "Parasitized")
+
+```
+* Caterpillars were only ever parasitized in the absence of membracids
+
+
+
+
+
+
+
+* Chewing herbivore abundance by subsite and sap feeder presence
+```{r herbivores_subsite_saps, echo = F}
+# ggplot(obs.all, 
+#        aes(x = subsite,
+#            y = counts, 
+#            fill = sap.feeders)) +
+#     geom_boxplot()+
+#     ggplot.theme +
+#     labs(x = "Subsite",
+#          y = "Chewing herbivore abundance",
+#          fill = "Sap feeding insects")
+
+
+```
+
+
+* Chewing herbivore abundance by forest zone and sap feeder presence
+```{r herbivores_zone_saps, echo = F}
+# ggplot(obs.all, 
+#        aes(x = zone,
+#            y = counts, 
+#            fill = sap.feeders)) +
+#     geom_boxplot()+
+#     ggplot.theme +
+#     labs(x = "Forest zone",
+#          y = "Chewing herbivore abundance",
+#          fill = "Sap feeding insects")
+# 
+
+```
+
+
+* Total ants by forest zone and sapfeeders.
+```{r obs_ants_by_zone_by_sapfeeders, echo = F}
+# ggplot(obs.all, 
+#        aes(x = zone,
+#            y = total.ants,
+#            fill = sap.feeders)) +
+#     geom_boxplot() +
+#     ggplot.theme +
+#     labs(x = "Forest zone",
+#          y = "Total ant abundance",
+#          fill = "Sap-feeding insects") 
+
+
+```
+
+
+* Total treehoppers by subsite and forest zone
+```{r obs_treehoppers_forest_zone, echo = F}
+# ggplot(obs.all,
+#        aes(x = subsite,
+#            y = treehoppers,
+#            fill = zone)) +
+#     geom_boxplot()+
+#     ggplot.theme +
+#     labs(x = "Fprest subsite",
+#          y = "Total treehopper abundance",
+#          fill = "Forest zone")
+
+```
+
+
+
+
+## Experimental data
+
+* Total ants by ant treatment
+```{r ants_by_ant_treatment, echo = F}
+# ggplot(exp.all, 
+#        aes(x = ant.treat,
+#            y = total.ants,
+#            fill = sap.feeders)) +
+#     geom_boxplot() +
+#     facet_wrap(~zone) +
+#     ggplot.theme +
+#     labs(x = "Ant treatment",
+#          y = "Total ant abundance",
+#          fill = "Sap feeding insects")
+
+```
+
+
+* Total treehoppers by treatment
+```{r treehoppers_by_treatment, echo = F}
+# ggplot(exp.all,
+#        aes(x = mem.treat,
+#            y = treehoppers.sample,
+#            fill = zone)) +
+#     geom_boxplot() +
+#     ggplot.theme +
+#     labs(x = "Treehopper treatment",
+#          y = "Total treehopper abundance",
+#          fill = "Forest zone")
+
+
+```
+
+
+* Insect herbivore abundance by experimental treatments and habitat zone
+```{r IH_abundance_plot1, echo = F}
+# ggplot(exp.all, aes(x = mem.treat,
+#                     y = counts,
+#                     fill = ant.treat)) +
+#     geom_boxplot() +
+#     facet_wrap(~zone) +
+#     ggplot.theme +
+#     labs(x = "Membracid treatment",
+#          y = "Insect herbivore abundance",
+#          fill = "Ant treatment")
+
+
+```
+
+
+## No-choice assay
+
+* Gypsy moths were randomly assigned leaves from branches that either had sap feeders or did not. Additionally, this sap feeder presence/absence design was replicated in both edge and interior forest habitats.
+
+
+
+** Prediction figure for 557
+```{r prediction_figure_557, echo = F}
+# 
+# ex.data <- read.csv("data/ex.data.557.csv")
+# 
+# ggplot(ex.data, aes(x = sap.feeders,
+#                     y = LLA)) +
+#     geom_boxplot(aes(fill = sap.feeders),
+#                  show.legend = NA) +
+#     ggplot.theme +
+#     labs(x = "Sap Feeding Insects",
+#          y = "Leaf area lost")
+
+```
+
+```{r no_choice_figures , echo = F}
+# 
+# ggplot(choice, aes(x = subsite,
+#                    y = eaten,
+#                    fill = scale)) +
+#     geom_boxplot() +
+#     ggplot.theme +
+#     labs(x = "Habitat zone",
+#          y = "LLA (cm^2)",
+#          fill = "Sap feeding \ninsects") +
+#     scale_fill_discrete(labels = c("Absent", "Present")) +
+#     scale_x_discrete(labels = c("Edge", "Interior"))
+
+```
+
+
+
+
+
+
+
+## Models:
+
+
+### No-choice assay
+```{r no_choice_model , echo = F}
+# 
+# hist(choice$eaten)
+# 
+# 
+# choice.mod <- glmmTMB(eaten ~ scale * subsite,
+#                       family = Gamma(),
+#                       data = choice)
+# 
+# 
+# choice.mod1 <- glmmTMB(eaten ~ scale * subsite,
+#                       family = gaussian(),
+#                       data = choice)
+# 
+# 
+# AIC(choice.mod1, choice.mod)
+# # Gamma distribution is better
+# 
+# plot_model(choice.mod,
+#            show.values = T,
+#            show.p = T,
+#            value.offset = 0.2)
+# 
+# plot_model(choice.mod,
+#            type = "pred",
+#            terms = c("subsite", "scale"))
+# 
+# summary(choice.mod1)
+
+```
+
+
+
+### Observational data:
+```{r obs_counts_model, echo = F}
+# 
+# obs.mod1 <- glmmTMB(count ~ db * sap.feeders * zone + total_ants +
+#                         (1 | caterpillar.spp),
+#                     family = nbinom2(),
+#                     ziformula = ~1,
+#                     data = long.obs
+#                         )
+# 
+# obs.mod2 <- glmmTMB(count ~ db * sap.feeders * zone + total_ants +
+#                         (1 | caterpillar.spp),
+#                     family = nbinom2(),
+#                     data = long.obs
+#                         )
+# 
+# AIC(obs.mod1, obs.mod2)
+# 
+# 
+# summary(obs.mod1)
+# plot_model(obs.mod1)
+
+```
+
+
+### Experimental data:
+```{r exp_counts_model, echo = F}
+# 
+# exp.mod1 <- glmmTMB(count ~ mem.treat * ant.treat * zone +
+#                         other.preds + (1 | caterpillar.spp),
+#                     family = poisson,
+#                     data = long.exp)
+# 
+# exp.mod2 <- glmmTMB(count ~ mem.treat * ant.treat * zone +
+#                         other.preds + (1 | caterpillar.spp),
+#                     family = poisson,
+#                     ziformula = ~1,
+#                     data = long.exp)
+# 
+# 
+# overdispersion_test(exp.mod1)
+# # poisson distribution model is not overdispersed, if anything the data are slightly underdispersed.
+# 
+# AIC(exp.mod1, exp.mod2)
+# # model without zero inflation is slightly better. 
+# 
+# plot_model(exp.mod1)
+# # no significant effects with "zone"
+# 
+# 
+# 
+# 
+# 
+# 
+# exp.mod3 <- glmmTMB(count ~ mem.treat * ant.treat * distance +
+#                         other.preds + (1 | caterpillar.spp),
+#                     family = poisson,
+#                     data = long.exp)
+# 
+# exp.mod4 <- glmmTMB(count ~ mem.treat * ant.treat * distance +
+#                         other.preds + (1 | caterpillar.spp),
+#                     family = poisson,
+#                     ziformula = ~1,
+#                     data = long.exp)
+# 
+# 
+# exp.mod5 <- glmmTMB(count ~ mem.treat * ant.treat * edge.dist +
+#                         other.preds + (1 | caterpillar.spp),
+#                     family = poisson,
+#                     data = long.exp)
+# 
+# overdispersion_test(exp.mod3)
+# # again, the data are slightly underdispersed
+# 
+# AIC(exp.mod1, exp.mod2, exp.mod3, exp.mod4, exp.mod5)
+# # again, no real difference in AIC, -> use model w/o zero inflation
+# 
+# 
+# plot_model(exp.mod3,
+#            show.values = T,
+#            show.p = T,
+#            value.offset = 0.5,
+#            transform = NULL)
+# 
+# summary(exp.mod3)
+# # nothing significant
+# 
+# 
+# 
+# # random slopes
+# plot_model(exp.mod5, 
+#            type = "pred",
+#            terms = c("edge.dist",
+#                      "caterpillar.spp",
+#                      "mem.treat"),
+#            pred.type = "re") +
+#     scale_color_sjplot(17, palette = "ipsum") +
+#     labs(x = "Distance to edge (m)",
+#          y = "Predicted counts",
+#          color = "Herbivore Species",
+#          title = "Predicted random effects")
+#    #coord_cartesian(ylim = 6)
+# # + geom_text(aes(label = Caterpillar Species))
+# 
+# 
+# library(RColorBrewer)
+# # Define the number of colors you want
+# nb.cols <- 17
+# mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
+# 
+
+```
+
+
+* Ant abundance by sap feeder treatment and habitat zone.
+```{r ants_by_saps_and_habitat, echo = F}
+# mod1 <- glm(total.ants ~ sap.feeders * zone + ant.treat,
+#             family = quasipoisson(),
+#             data = exp.all)
+# 
+# # model diagnostics
+# plot_model(mod1, type = "diag")
+# 
+# plot_model(mod1)
+# summary(mod1)
+```
+
+
+* Insect herbivore abundance by ant & membracid treatments, total ants, other predators, and habitat zone.
+```{r IH_abundance_by_treatments_and_totalants_otherpreds_habitat, echo=F}
+# mod2 <- glm(counts ~ mem.treat * ant.treat * zone + other.preds,
+#             family = quasipoisson(),
+#             data = exp.all)
+# 
+# plot_model(mod2, type = "diag")
+# 
+# plot_model(mod2)
+
+```
+
+# 2020
+
+## No choice assay of leaf acceptibility
+
+```{r 2021_2020.feeding.assay.wrangling, echo = F}
+
+count.assay21 <- pf21 %>% 
+    select(cat.spp) %>% 
+    mutate(cat.spp = factor(cat.spp)) %>% 
+    group_by(cat.spp) %>% 
+    tally() %>% 
+    mutate(year = 2021)
+
+count.assay20 <- dat2 %>% 
+    select(cat.spp) %>% 
+    mutate(cat.spp = factor(cat.spp)) %>% 
+    group_by(cat.spp) %>% 
+    tally() %>% 
+    mutate(year = 2020)
+
+count.spp.PF.assay.20.21 <- bind_rows(count.assay20,
+                                      count.assay21)
+
+write.csv(count.spp.PF.assay.20.21,
+          file = "data/count.spp.PF.assay.20.21.csv",
+          row.names = F)
+
+pf21 <- pf21 %>% 
+    select(weight, treatment, lla) %>% 
+    mutate(treatment = factor(treatment))
+
+pf21$treatment <- recode_factor(pf21$treatment, m = "removed", 
+                                p = "replaced")
+
+pf21 <- pf21 %>% 
+    rename(initial.weight = weight)
+
+
+
+pf20 <- dat2 %>% 
+    select(initial.weight, treatment, consumed) %>% 
+    rename(lla = consumed) %>% 
+    mutate(initial.weight = initial.weight * 1000)
+
+pf.20.21 <- bind_rows(pf20, pf21)
+
+
+
+```
+
+
+### Variation in canopy openness
+``` {r variation_canopy_openness, echo = F}
+hist(canopy2020$gap_fraction)
+
+```
+
+### Modeling leaf acceptibility 2020:
+```{r 2020.palatability.models, echo = F}
+dat2 <- dat2 %>% 
+    mutate(cat.spp = factor(cat.spp))
+
+hist((dat2$consumed))
+mod1 <- glm(consumed ~ treatment * gap_fraction +
+                  sap.feeder + scale(initial.weight),
+            family = Gamma(link = "log"),
+              data = dat2)
+
+summary(mod1)
+plot_model(mod1,
+           type = "pred",
+           terms = c("gap_fraction", "treatment"),
+           line.size = 3,
+           axis.title = c("% Canopy openness", "Leaf area consumed"),
+           title = "",
+           ci.lvl = .95,
+           colors = c("steelblue2", "chocolate2"),
+           show.data = T,
+           dot.size = 3,
+           legend.title = "Phloem-feeder \ntreatment"
+           ) +
+    theme_classic(base_size = 24)
+
+mod1.tree <- lm(log(consumed) ~ treatment * gap_fraction +
+                    scale(initial.weight),
+                data = filter(dat2, sap.feeder == "treehopper"))
+
+plot_model(mod1.tree)
+
+
+mod1.scale <- lm(log(consumed) ~ treatment * gap_fraction +
+                   scale(initial.weight),
+               data = filter(dat2, sap.feeder == "scale"))
+
+
+plot_model(mod1.scale)
+
+
+mod1.simp <- glm(lla ~ treatment + scale(initial.weight),
+            family = Gamma(link = "log"),
+              data = pf.20.21)
+
+summary(mod1.simp)
+
+plot_model(mod1.simp,
+           type = "pred",
+           terms = "treatment") +
+    theme_classic() +
+    labs(x = "Phloem-feeder treatment",
+         y = "Palatability \n(leaf area consumed)")
+
+em.pf.feed <- emmeans(mod1.simp,
+                      specs = "treatment",
+                      type = "response")
+
+
+em.pf.feed.dat <- summary(em.pf.feed)[1-5] 
+
+
+
+
+```
+
+# 2020 & 2021 phloem-feeder leaf palatability
+```{r 2020.2021.pf.palatability.figure, echo = F}
+
+ggplot(em.pf.feed.dat,
+       aes(x = treatment, y = response)) +
+    geom_point(size = 5,
+               shape = 18) +
+    geom_errorbar(aes(ymin = response - SE,
+                      ymax = response + SE),
+                  width = .3) +
+    theme_classic(base_size = 28) +
+    labs(x = "Phloem-feeder treatment",
+         y = "Palatability \n(leaf area consumed)")
+
+summary(mod1.simp)
+
+```
+
+
+
+### Leaf accetibility figure
+```{r no_choice_2020_predicted_figure, echo = F}
+
+plot_model(mod1, type = "pred",
+           terms = c("gap_fraction", "treatment"))
+
+
+```
+
+```{r no_choice_2020_boxplot_figure, echo = F}
+
+ggplot(dat2,
+       aes(x = treatment, y = consumed))+
+    geom_boxplot() +
+    ggplot.theme +
+    labs(x = "Sap-feeder treatment",
+         y = "Leaf-area consumed")
+
+
+# ggplot(choice, aes(x = subsite,
+#                    y = eaten,
+#                    fill = scale)) +
+#     geom_boxplot() +
+#     ggplot.theme +
+#     labs(x = "Habitat zone",
+#          y = "LLA (cm^2)",
+#          fill = "Sap feeding \ninsects") +
+#     scale_fill_discrete(labels = c("Absent", "Present")) +
+#     scale_x_discrete(labels = c("Edge", "Interior"))
+
+```
+
+```{r no_choice_2020_ANCOVA_figure, echo = F}
+
+ggplot(dat2,
+       aes(x = gap_fraction, 
+           y = consumed, 
+           color = treatment))+
+    geom_smooth(method = "lm",
+                size = 2,
+                linetype = "twodash",
+                alpha = 0.3,
+                show.legend = NA)+
+    ggplot.theme +
+    labs(color = "Sap-feeder \ntreatment",
+         y = "Leaf-area consumed",
+         x = "Canopy openness (%)")
+
+
+
+
+```
+
+
+
+## Parasitoid traps
+```{r parasitoid_traps_2020_table, echo = F}
+
+
+
+para.traps2020 <- para.traps2020 %>% 
+    rename(Membracid_treatment = treatment) %>% 
+    group_by(Membracid_treatment) %>% 
+    summarise(parasitoids = sum(parasitoids))
+    
+
+kable(para.traps2020, digits = 2, format = "markdown")
+
+```
+
+
+```{r parasitoid_traps_2020_figure, fig.width = 6, echo = F, cache = F}
+
+
+trap.fig <- 
+  ggplot(para.traps2020,
+       aes(x = Membracid_treatment,
+           y = parasitoids,
+           fill = Membracid_treatment)) +
+    geom_bar(stat = 'identity', 
+             position = 'dodge') +
+    ggplot.theme +
+    labs(x = "Phloem-feeder treatment",
+         y = "Parasitoids") +
+  scale_fill_manual(name = " ",
+                    values = c("grey33", "grey60")) +
+  theme_classic(base_size = 22) +
+  theme(legend.position = "none") +
+  ggtitle("Parasitoid sticky traps") +
+  theme(plot.title = element_text(hjust = 0.5, size = 20))
+
+trap.fig
+
+```
+
+
+## Parasitism analyses in binomial GLM framework
+
+
+```{r para_GLM, echo = F}
+
+head(fate19.20)
+
+# having a look a the parasitism data in a frequentist framework 
+# with a binomial GLM:
+mod1_bin <- glm(yes/(yes + no) ~ treatment, 
+            data = fate19.20, 
+            family = binomial, weights = yes + no)
+
+summary(mod1_bin)
+
+sims <- simulate(mod1_bin, 10)
+
+bootfun <- function(mod, dat){
+  dat$newy <- simulate( mod)[[1]]
+  mod_sim <- glm(newy ~ treatment, 
+            data = dat, 
+            family = binomial, weights = yes + no)
+ plogis(c(coef(mod_sim)[1], sum(coef(mod_sim))))
+}
+
+
+boot <-  replicate(1000, bootfun(mod1_bin, dat=fate19.20), simplify = TRUE)
+
+plotres <-  t(apply(boot, 1, quantile, c(0.5, 0.025, 0.975)))
+
+plotres <- data.frame("treatment" = c("Removed", "Replaced"), plotres)
+names(plotres)[-1] <-  c("parasite", "lcl", "ucl")
+```
+
+## Parasitism figure
+```{r parasitism_19_20_figure, fig.width = 5, echo = F, cache = F}
+
+
+para.fig <-
+  ggplot(plotres, aes(x=treatment, y=parasite, ymin=lcl, ymax=ucl)) +
+  geom_pointrange() +
+    ggplot.theme +
+    labs(x = "Phloem-feeder treatment",
+         y = "Probabilty of parasitism") +
+  theme_classic(base_size = 22) +
+  scale_x_discrete(labels = c("removed", "replaced"))+
+  expand_limits(y = .45)
+
+para.fig
+
+```
+
+## Parasitism and trap figure inset:
+```{r para_inset_figure, figwidth = 3, echo = F, cache = F}
+
+para.inset <- 
+  para.fig + annotation_custom(ggplotGrob(trap.fig),
+                               xmin = 1.2, xmax = 2.5,
+                               ymin = .1, ymax = .48)
+
+
+para.inset
+
+```
+
+
+### Exact binomial test (two-tailed)
+```{r para.traps2020_exact_binomial_test, echo = F}
+
+binom.test(10, 34, 0.5,
+           alternative = "two.sided",
+           conf.level = 0.95)
+```
+
+* There were significantly more parasitoids on traps located near branches with treehoppers removed (compared to treehopper replaced branches), (p = 0.024).
+
+
+## Parasitism data
+```{r parasitism_data_2020, echo = F}
+
+
+
+para2020.1 <- para2020 %>%
+    select(treatment, parasitized) %>%
+    group_by(treatment, parasitized) %>% 
+    tally()
+
+
+
+para.data2020 <- data.frame(no = c(8, 10),
+                        yes = c(1, 0))
+rownames(para.data2020) <- c("scale.removed","scale.replaced")
+
+
+kable(para.data2020, format = "markdown", digits = 2)
+
+fisher.test(para.data2020)
+
+
+para.fig2020 <- data.frame(Coccids = c("removed",
+                                       "removed",
+                                       "replaced",
+                                       "replaced"),
+                       parasitized = c("no", "yes",
+                                       "no", "yes"),
+                       n = c(8, 1, 10, 0))
+
+ggplot(para.fig2020, aes(x = Coccids,
+                     y = n,
+                     fill = parasitized)) +
+    geom_bar(stat = 'identity', position = 'dodge') +
+    ggplot.theme +
+    labs(x = "Coccidae treatment",
+         y = "Caterpillars recovered",
+         fill = "Parasitized",
+         title = "2020 data")
+
+
+
+
+```
+* Caterpillars were only ever parasitized in the presence of scale insects. However, the proportion of caterpillars parasitized did not statistically differ between scale insect removal and replacement treatments, (p = 0.474)
+
+
+## Parasitoid rearing data from 2019, 2020, and 2021
+```{r para_data_2019_2020_2021, echo = F}
+
+# wrangling the 2021 para data:
+para21 <- para21 %>%
+    select(treatment, fate) %>% 
+    mutate(parasitized = "no") %>% 
+    mutate(parasitized = factor(parasitized),
+           treatment = factor(treatment)) %>% 
+    filter(fate != "para") %>% 
+    select(treatment, parasitized)
+    
+
+para21.count <- para21 %>%
+    group_by(treatment, parasitized) %>% 
+    tally()
+
+# 2019, 2020, 2021
+
+para.data.19.20.21 <- data.frame(no = c(47, 41),
+                                 yes = c(8, 0))
+rownames(para.data.19.20.21) <- c("Phloem-feeders removed", "Phloem-feeders replaced")
+
+kable(para.data.19.20.21, format = "markdown", digits = 2)
+
+fisher.test(para.data.19.20.21)
+
+
+
+
+# 2019 & 2020
+para.data19.20 <- data.frame(no = c(31, 22),
+                         yes = c(8, 0))
+rownames(para.data19.20) <- c("sap.removed","sap.replaced")
+
+
+kable(para.data19.20, format = "markdown", digits = 2)
+
+fisher.test(para.data19.20)
+
+
+para.fig19.20 <- data.frame(sap.feeders = c("removed",
+                                       "removed",
+                                       "replaced",
+                                       "replaced"),
+                       parasitized = c("no", "yes",
+                                       "no", "yes"),
+                       n = c(32, 8, 22, 0))
+
+ggplot(para.fig19.20, aes(x = sap.feeders,
+                     y = n,
+                     fill = parasitized)) +
+    geom_bar(stat = 'identity', position = 'dodge') +
+    ggplot.theme +
+    labs(x = "Sap-feeder treatment",
+         y = "Caterpillars recovered",
+         fill = "Parasitized")+
+    ggplot.theme
+
+
+
+
+```
+* Combining the treehopper manipulation data from 2019 and the scale manipulation data from 2020, results in a significant effect of sap-feeder removal. Parasitism rates differ significantly in terms of sap-feeder treatment, (P = 0.042). Again, caterpillars were only ever parasitized in the absence of sap-feeders.
+
+# 2019, 2020, 2021 Parasitism figure
+
+
+```{r 2019_2020_2021_para_GLM, echo = F}
+
+para21 <- para21 %>% 
+    mutate(no = 1,
+           yes = 0) %>% 
+    select(-parasitized)
+
+fate19.20 <- fate19.20 %>% 
+    select(-sap.type)
+
+fate19.20.21 <- bind_rows(fate19.20, para21)
+
+# having a look a the parasitism data in a frequentist framework 
+# with a binomial GLM:
+mod2_bin <- glm(yes/(yes + no) ~ treatment, 
+            data = fate19.20.21, 
+            family = binomial, weights = yes + no)
+
+summary(mod2_bin)
+
+sims2 <- simulate(mod2_bin, 10)
+
+bootfun <- function(mod, dat){
+  dat$newy <- simulate( mod)[[1]]
+  mod_sim <- glm(newy ~ treatment, 
+            data = dat, 
+            family = binomial, weights = yes + no)
+ plogis(c(coef(mod_sim)[1], sum(coef(mod_sim))))
+}
+
+
+boot2 <-  replicate(1000, bootfun(mod2_bin, dat=fate19.20.21), simplify = TRUE)
+
+plotres2 <-  t(apply(boot2, 1, quantile, c(0.5, 0.025, 0.975)))
+
+plotres2 <- data.frame("treatment" = c("Removed", "Replaced"), plotres2)
+
+names(plotres2)[-1] <-  c("parasitized", "lcl", "ucl")
+```
+
+```{r parasitism_19_20_21_figure, fig.width = 5, echo = F, cache = F}
+
+ggplot(plotres2, aes(x = treatment, 
+                     y = parasitized, 
+                     ymin = lcl,
+                     ymax = ucl)) +
+  geom_pointrange() +
+    ggplot.theme +
+    labs(x = "Phloem-feeder treatment",
+         y = "Probabilty of parasitism") +
+  theme_classic(base_size = 22) +
+  scale_x_discrete(labels = c("removed", "replaced"))+
+  expand_limits(y = .45)
+
+
+```
+
+
+# 2019 & 2022 comparison of ant and phloem feeder treatments on parasitism
+```{r ant.pf.parasitism.wrangling, fig.width = 11, echo = F}
+
+fate2019 <- fate %>% 
+    select(mem.treat, ant.treat, para) %>% 
+    mutate(year = "2019") %>% 
+    mutate(year = factor(year))
+
+pf22.short <- pf22 %>% 
+    select(PF.treatment, ant.treatment, para) %>% 
+    mutate(year = "2022") %>% 
+    mutate(year = factor(year)) %>% 
+    filter(para != "") %>% 
+    slice(-58) %>%  # removing the row with a "?" for parasitism
+    rename(mem.treat = PF.treatment,
+           ant.treat = ant.treatment)
+
+pf.19.22 <- bind_rows(fate2019, pf22.short) %>% 
+    mutate(mem.treat = factor(mem.treat),
+           ant.treat = factor(ant.treat),
+           para = factor(para))
+
+ant.19.22 <- pf.19.22 %>% 
+    select(ant.treat, para) %>% 
+    group_by(ant.treat, para) %>% 
+    tally()
+
+ant.19.22.matrix <- data.frame(no = c(47, 56),
+                                 yes = c(8, 6))
+
+rownames(ant.19.22.matrix) <- c("Ant access", "Ant exclusion")
+
+kable(ant.19.22.matrix, format = "markdown", digits = 2)
+
+fisher.test(ant.19.22.matrix)
+
+
+pf.19.22.tally <- pf.19.22 %>% 
+    group_by(mem.treat, ant.treat, para) %>% 
+    tally()
+
+filler <- data.frame(mem.treat = c("replaced", "replaced"),
+                     ant.treat = c("access", "excluded"),
+                     para = c("yes", "yes"),
+                     n = c(0, 0)) %>% 
+    mutate(mem.treat = factor(mem.treat),
+           ant.treat = factor(ant.treat),
+           para = factor(para))
+
+pf.ant.fig.data <- bind_rows(pf.19.22.tally, filler)
+
+levels(pf.ant.fig.data$ant.treat) <- c("Ant Access", "Ant Exclusion") 
+levels(pf.ant.fig.data$para) <- c("Unparasitized", "Parasitized")
+levels(pf.ant.fig.data$mem.treat) <- c("Removed", "Replaced")
+
+
+ggplot(pf.ant.fig.data,
+       aes(x = mem.treat, y = n, fill = para)) +
+    geom_col() +
+    facet_wrap(~ ant.treat) +
+    theme_classic(base_size = 22) +
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
+    scale_fill_manual(values = c("gray80", "grey36")) +
+    scale_y_continuous(limits = c(0, 45)) +
+    labs(x = "Phloem-feeder treatment",
+         y = "Caterpillar\ncount",
+         fill = "Caterpillars") +
+    theme(legend.title.align = 0.5)
+
+ant.pf.mod1 <- glm(para ~ mem.treat * ant.treat + year,
+                   family = binomial(),
+                   data = pf.19.22)
+
+summary(ant.pf.mod1)
+
+```
+
+
+# 2019-2022 parasitism analysis of phloem-feeders
+
+```{r para_fisher_test_19_20_21_22, echo = F}
+
+pf22.no.ants <- pf22 %>% 
+    select(PF.treatment, para) %>% 
+    filter(para != "") %>% 
+    slice(-58) %>%  # removing the row with a "?" for parasitism
+    mutate(PF.treatment = factor(PF.treatment),
+           para = factor(para)) %>% 
+    group_by(PF.treatment, para) %>% 
+    tally()
+
+# 2019, 2020, 2021, 2022
+
+para.data.19.20.21.22 <- data.frame(no = c(74, 82),
+                                 yes = c(15, 0))
+
+rownames(para.data.19.20.21.22) <- c("Phloem-feeders removed", "Phloem-feeders replaced")
+
+kable(para.data.19.20.21.22, format = "markdown", digits = 2)
+
+fisher.test(para.data.19.20.21.22)
+
+
+```
+
+
+```{r para_glm_19_20_21_22, echo = F}
+
+# wrangling
+pf22.spread <- pf22 %>% 
+    select(PF.treatment, para, branch.ID) %>% 
+    filter(para != "") %>% 
+    slice(-58) %>% 
+    group_by(PF.treatment, para, branch.ID) %>% 
+    tally() %>% 
+    spread(para, n) %>% 
+    rename(treatment = PF.treatment) %>% 
+    select(-branch.ID)
+
+pf22.spread[is.na(pf22.spread)] <- 0
+
+fate19202122 <- bind_rows(fate19.20.21, pf22.spread)
+
+
+# modeling
+mod3_bin <- glm(yes/(yes + no) ~ treatment, 
+            data = fate19202122, 
+            family = binomial, weights = yes + no)
+
+summary(mod3_bin)
+
+sims3 <- simulate(mod3_bin, 10)
+
+
+boot3 <-  replicate(1000, bootfun(mod3_bin, dat=fate19202122), simplify = TRUE)
+
+plotres3 <-  t(apply(boot3, 1, quantile, c(0.5, 0.025, 0.975)))
+
+plotres3 <- data.frame("treatment" = c("Removed", "Replaced"), plotres3)
+
+names(plotres3)[-1] <-  c("parasitized", "lcl", "ucl")
+
+
+```
+
+# Final figure of parasitism for 2019-2022.
+
+```{r para_fig_glm_19_20_21_22, fig.width = 5, echo = F}
+
+ggplot(plotres3, aes(x = treatment, 
+                     y = parasitized, 
+                     ymin = lcl,
+                     ymax = ucl)) +
+  geom_pointrange() +
+    ggplot.theme +
+    labs(x = "Phloem-feeder treatment",
+         y = "Probabilty of parasitism") +
+  theme_classic(base_size = 22) +
+  scale_x_discrete(labels = c("removed", "replaced"))+
+  expand_limits(y = .45)
+
+
+```
+
+
+# Figure of parasitism by caterpillar species
+
+```{r cat_spp_parasitism_fig_all, echo = F}
+
+cat.para <- cat.spp.para %>% 
+    mutate(Cat.sp = factor(Cat.sp)) %>% 
+    mutate(N.unpara = N.total - N.para) %>% 
+    select(Cat.sp, N.unpara, N.para) %>% 
+    rename(yes = N.para,
+           no = N.unpara) %>% 
+    pivot_longer(!Cat.sp,
+                 names_to = "para",
+                 values_to = "para.count") %>% 
+    slice(1:44)
+
+
+ggplot(cat.para,
+       aes(x = Cat.sp,
+           y = para.count)) +
+    geom_col(aes(fill = fct_rev(para)), width = .9) +
+    labs(x = "Caterpillar species",
+         y = "Caterpillar count",
+         fill = "Parasitized") +
+    coord_flip() +
+    theme_cowplot() +
+    theme(axis.title.y = element_blank())
+
+
+
+
+```
+
+
+# New figure for poster and manuscript
+```{r para_by_species_pf_treatment_fig, echo = F, fig.width = 10}
+
+# wrangling the data:
+para.pf1 <- para.pf %>% 
+    select(cat.sp,
+           total.rem,
+           para.rem) %>% 
+    mutate(yes = para.rem,
+           no = total.rem - para.rem) %>% 
+    select(cat.sp,
+           yes,
+           no) %>% 
+    pivot_longer(!cat.sp,
+                 names_to = "para",
+                 values_to = "para_count") %>% 
+    mutate(cat.sp = factor(cat.sp))
+
+para.pf2 <- para.pf %>% 
+    select(cat.sp,
+           total.rep,
+           para.rep) %>% 
+    mutate(yes = para.rep,
+           no = total.rep - para.rep,
+           cat.sp = factor(cat.sp)) %>% 
+    select(cat.sp,
+           yes,
+           no) %>% 
+    pivot_longer(!cat.sp,
+                 names_to = "para",
+                 values_to = "para_count")
+
+
+ggplot(para.pf1,
+       aes(x = reorder(cat.sp, -para_count),
+           y = para_count)) +
+  geom_col(aes(fill = fct_rev(para)), width = 0.9) +
+  geom_col(data = para.pf2,
+           aes(y = -para_count,
+               fill = para)) +
+  coord_flip() +
+  theme_cowplot() + 
+  labs(x = "",
+       y = "Caterpillar count",
+       fill = "Parasitized") +
+  geom_hline(yintercept = 0) +
+  annotate(geom = "text",
+           x = 21,
+           y = -16, 
+           label = "Phloem-feeder \nreplacement",
+           color = "black",
+           size = 7) +
+  annotate(geom = "text",
+           x = 21,
+           y = 18, 
+           label = "Phloem-feeder \nremoval",
+           color = "black",
+           size = 7) +
+  theme(text = element_text(size = 22)) +
+  scale_fill_manual(values = c("grey17",
+                               "grey54")) +
+  theme(legend.position = c(.8, .5))
+    
+
+
+```
+
+## Session Information
+
+```{r Session_Info, echo = F, comment = ""}
+
+# Add session information to help with reproduceability
+sessionInfo()
+
+
+```
+
+

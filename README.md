@@ -11,6 +11,6 @@ results, and figures (this file does not show code).
 
 ## Correspondence:
 
-Riley Anderson riley.m.anderson@wsu.edu
+Dr. Riley Anderson riley.m.anderson@wsu.edu
 
-Michael Singer msinger@wesleyan.edu
+Dr. Michael Singer msinger@wesleyan.edu
