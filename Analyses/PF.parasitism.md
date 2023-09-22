@@ -117,6 +117,8 @@ posterior distributions of the binomial GLMs.
     ## Null Deviance:       85.7 
     ## Residual Deviance: 66.48     AIC: 74.48
 
+- Analysis of deviance results:
+
 |                     | LR Chisq |  Df | Pr(\>Chisq) |
 |:--------------------|---------:|----:|------------:|
 | mem.treat           |  18.5630 |   1 |      0.0000 |

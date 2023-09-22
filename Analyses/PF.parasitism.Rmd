@@ -293,9 +293,11 @@ rownames(plotres.ant) <- NULL
 
 AoD.results.ants <- car::Anova(ant.pf.mod)
 
-kable(AoD.results.ants, format = "markdown", digits = 4)
+
 ```
 
+* Analysis of deviance results: 
+`r kable(AoD.results.ants, format = "markdown", digits = 4)`
 
 ## Ant & PF means and CIs figure
 
