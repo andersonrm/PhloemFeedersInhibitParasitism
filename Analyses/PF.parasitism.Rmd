@@ -260,15 +260,23 @@ bootfun_rb <- function(mod){
   return(coef(newmod))
 }
 
-boot_rb <- replicate(1000, bootfun_rb(ant.pf.mod), simplify =TRUE)
-pvals <- 1 - 2*abs(apply(boot_rb, 1, function(x) mean(x>0)) - 0.5)
+
+boot_rb <- replicate(999, bootfun_rb(ant.pf.mod), simplify =TRUE)
+pvals <- 1 - (2*abs(apply(boot_rb, 1, function(x) mean(x>0)) - 0.5))
+round(pvals, 4)
 
 summary(ant.pf.mod) ## ant and intercept are similar to summary!
 ## checking the cis line up
-## 
+ 
 apply(boot_rb, 1,  quantile, c(0.025, 0.975)) ## note that antexcluded:memtrt is
-## the reverse of the ant treatment - what we'd expect, give that the
-## mem treatment repalces it.,
+## the reverse of the ant treatment - what we'd expect,
+
+## Turns out the car package has an auto-magic way of getting bootstrapping
+## glm objects. It estimates and accounts for bias etc. Trying that
+boot_car <- car::Boot(ant.pf.mod, R = 999 )
+car::Confint(boot_car, type = "bca")
+## the package boot.pval automatically gives pvals if we want
+#boot.pval::boot_summary(ant.pf.mod) ## to check against another approach
 
 ```
 
