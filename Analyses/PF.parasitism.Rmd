@@ -278,6 +278,11 @@ car::Confint(boot_car, type = "bca")
 ## the package boot.pval automatically gives pvals if we want
 #boot.pval::boot_summary(ant.pf.mod) ## to check against another approach
 
+## Perhaps the most straightforward approahc would be to do an analysis of 
+## deviance, which isn't affected by the limits., 
+
+car::Anova(ant.pf.mod)
+
 ```
 
 
@@ -336,7 +341,8 @@ plotres <- data.frame("treatment" = c("Removed", "Replaced"), plotres)
 
 names(plotres)[-1] <-  c("parasitized", "lcl", "ucl")
 
-
+car::Anova(pf.mod)
+head(para.all.years)
 ```
 
 ## Phloem-feeder figure
@@ -397,6 +403,7 @@ ggplot(para.pf1,
 ```
 
 * Figure 3. Distribution of caterpillar counts by species across phloem-feeder treatments (Experiments 1 and 2). Light grey bars indicate records of unparasitized caterpillars, whereas dark grey bars indicate parasitized caterpillars. Caterpillars were only parasitized when phloem-feeders were removed.
+
 
 # Session Information
 
