@@ -121,7 +121,7 @@ ant.19.22 <- ant.data %>%
     group_by(ant.treat, para) %>% 
     tally()
 
-ant.19.22[[1,3]]
+
 
 ant.19.22.matrix <- data.frame(
   no = c(ant.19.22[[1,3]], ant.19.22[[3,3]]),
@@ -133,15 +133,19 @@ ant.tally <- ant.data %>%
     group_by(mem.treat, ant.treat, para) %>% 
     tally()
 
-filler <- data.frame(pf.treat = c("replaced", "replaced"),
+filler <- data.frame(mem.treat = c("replaced", "replaced"),
                      ant.treat = c("access", "excluded"),
                      para = c("yes", "yes"),
                      n = c(0, 0)) %>% 
-    mutate(mem.treat = factor(pf.treat),
+    mutate(mem.treat = factor(mem.treat),
            ant.treat = factor(ant.treat),
            para = factor(para))
 
 pf.ant.fig.data <- bind_rows(ant.tally, filler)
+
+pf.ant.fig.data <- pf.ant.fig.data %>% 
+  mutate(mem.treat = factor(mem.treat),
+         ant.treat = factor(ant.treat))
 
 levels(pf.ant.fig.data$ant.treat) <- c("Ant Access", "Ant Exclusion") 
 levels(pf.ant.fig.data$para) <- c("Unparasitized", "Parasitized")
@@ -229,7 +233,13 @@ ggplot(pf.ant.fig.data,
 ant.pf.mod <- glm(para ~ mem.treat * ant.treat,
                    family = binomial(),
                    data = ant.data)
+ant.pf.mod
 
+# p-value calculation is obstructed by data at the limits
+# i.e. there are zero records of parasitism when phloem-feeders are replaced
+# we apply two methods to estimate confidence intervals and p-values:
+# 1st: bootstrap estimation from simulations of the posterior distribution
+# 2nd: analysis of deviance (chosen because it is unaffected by the limits)
 
 boot.ant <-  replicate(1000,
                        bootfun.ant(ant.pf.mod, dat=ant.data), 
@@ -253,36 +263,37 @@ names(plotres.ant)[-1] <-  c("parasitized", "lcl", "ucl")
 rownames(plotres.ant) <- NULL
 
 ## get a p-value
-bootfun_rb <- function(mod){
-  simdat <- mod$data
-  simdat$para <- simulate(mod)[,1]
-  newmod <- update(mod, data =simdat)
-  return(coef(newmod))
-}
+# bootfun_rb <- function(mod){
+#   simdat <- mod$data
+#   simdat$para <- simulate(mod)[,1]
+#   newmod <- update(mod, data =simdat)
+#   return(coef(newmod))
+# }
 
 
-boot_rb <- replicate(999, bootfun_rb(ant.pf.mod), simplify =TRUE)
-pvals <- 1 - (2*abs(apply(boot_rb, 1, function(x) mean(x>0)) - 0.5))
-round(pvals, 4)
+# boot_rb <- replicate(999, bootfun_rb(ant.pf.mod), simplify =TRUE)
+# pvals <- 1 - (2*abs(apply(boot_rb, 1, function(x) mean(x>0)) - 0.5))
+# round(pvals, 4)
 
-summary(ant.pf.mod) ## ant and intercept are similar to summary!
+# summary(ant.pf.mod) ## ant and intercept are similar to summary!
 ## checking the cis line up
  
-apply(boot_rb, 1,  quantile, c(0.025, 0.975)) ## note that antexcluded:memtrt is
+# apply(boot_rb, 1,  quantile, c(0.025, 0.975)) ## note that antexcluded:memtrt is
 ## the reverse of the ant treatment - what we'd expect,
 
 ## Turns out the car package has an auto-magic way of getting bootstrapping
 ## glm objects. It estimates and accounts for bias etc. Trying that
-boot_car <- car::Boot(ant.pf.mod, R = 999 )
-car::Confint(boot_car, type = "bca")
+# boot_car <- car::Boot(ant.pf.mod, R = 999 )
+# car::Confint(boot_car, type = "bca")
 ## the package boot.pval automatically gives pvals if we want
 #boot.pval::boot_summary(ant.pf.mod) ## to check against another approach
 
-## Perhaps the most straightforward approahc would be to do an analysis of 
+## Perhaps the most straightforward approach would be to do an analysis of 
 ## deviance, which isn't affected by the limits., 
 
-car::Anova(ant.pf.mod)
+AoD.results.ants <- car::Anova(ant.pf.mod)
 
+kable(AoD.results.ants, format = "markdown", digits = 4)
 ```
 
 

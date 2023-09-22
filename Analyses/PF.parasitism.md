@@ -1,7 +1,7 @@
 Phloem Feeding Insects Inhibit Caterpillar Parasitism
 ================
 Riley M. Anderson
-September 14, 2023
+September 22, 2023
 
 - <a href="#overview" id="toc-overview">Overview</a>
   - <a href="#summary-of-results" id="toc-summary-of-results">Summary of
@@ -72,10 +72,6 @@ posterior distributions of the binomial GLMs.
   presence of phloem-feeding insects (Fisher’s exact test: *P* \< 0.001,
   two tailed test).
 
-<!-- -->
-
-    [1] 47
-
 # Ants:
 
 ## 2019 & 2022 comparison of ant treatments on parasitism
@@ -106,6 +102,26 @@ posterior distributions of the binomial GLMs.
   Experiment 1.
 
 ## Logistic model of the factorial ant & pf treatments on parasitism
+
+    ## 
+    ## Call:  glm(formula = para ~ mem.treat * ant.treat, family = binomial(), 
+    ##     data = ant.data)
+    ## 
+    ## Coefficients:
+    ##                         (Intercept)                    mem.treatreplaced  
+    ##                             -1.0116                             -18.5545  
+    ##                   ant.treatexcluded  mem.treatreplaced:ant.treatexcluded  
+    ##                             -0.5288                               0.5288  
+    ## 
+    ## Degrees of Freedom: 116 Total (i.e. Null);  113 Residual
+    ## Null Deviance:       85.7 
+    ## Residual Deviance: 66.48     AIC: 74.48
+
+|                     | LR Chisq |  Df | Pr(\>Chisq) |
+|:--------------------|---------:|----:|------------:|
+| mem.treat           |  18.5630 |   1 |      0.0000 |
+| ant.treat           |   0.7583 |   1 |      0.3839 |
+| mem.treat:ant.treat |   0.0000 |   1 |      1.0000 |
 
 ## Ant & PF means and CIs figure
 
@@ -157,6 +173,21 @@ simulations of the posterior distribution of the binomial GLM.
     ##          0
 
 ## 2019-2022 parasitism analysis of phloem-feeders via binomial GLM
+
+    ## Analysis of Deviance Table (Type II tests)
+    ## 
+    ## Response: yes/(yes + no)
+    ##           LR Chisq Df Pr(>Chisq)    
+    ## treatment   20.554  1  5.798e-06 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ##   treatment no yes
+    ## 1   removed  2   0
+    ## 2  replaced  2   0
+    ## 3   removed  1   0
+    ## 4  replaced  1   0
+    ## 5   removed  2   1
+    ## 6   removed  2   0
 
 ## Phloem-feeder figure
 
