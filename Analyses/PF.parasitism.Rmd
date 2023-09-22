@@ -215,7 +215,7 @@ ggplot(pf.ant.fig.data,
     labs(x = "Phloem-feeder treatment",
          y = "Caterpillar\ncount",
          fill = "Caterpillars") +
-    theme(legend.title.align = 0.5)
+    theme(legend.title.align = 0.5, strip.background=element_blank())
 
 
 ```
