@@ -1,11 +1,14 @@
 Phloem Feeding Insects Inhibit Caterpillar Parasitism
 ================
 Riley M. Anderson
-September 22, 2023
+October 04, 2023
 
 - <a href="#overview" id="toc-overview">Overview</a>
   - <a href="#summary-of-results" id="toc-summary-of-results">Summary of
     Results</a>
+- <a href="#natural-membracid-density-in-2022-membracids2"
+  id="toc-natural-membracid-density-in-2022-membracids2">Natural membracid
+  density in 2022 (membracids/<sup>2</sup>)</a>
 - <a href="#ants" id="toc-ants">Ants:</a>
   - <a href="#2019--2022-comparison-of-ant-treatments-on-parasitism"
     id="toc-2019--2022-comparison-of-ant-treatments-on-parasitism">2019
@@ -71,6 +74,47 @@ posterior distributions of the binomial GLMs.
 - Across all four years, caterpillars were never parasitized in the
   presence of phloem-feeding insects (Fisher’s exact test: *P* \< 0.001,
   two tailed test).
+
+<!-- -->
+
+    Analysis of Variance Table
+
+    Response: mem.density
+              Df Sum Sq Mean Sq F value   Pr(>F)   
+    Site       3 15.446  5.1485  6.1638 0.002621 **
+    Residuals 26 21.718  0.8353                    
+    ---
+    Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+    Call:
+    lm(formula = mem.density ~ Site, data = pf.dens)
+
+    Residuals:
+        Min      1Q  Median      3Q     Max 
+    -2.7266 -0.4274 -0.1613  0.2808  2.5188 
+
+    Coefficients:
+                                      Estimate Std. Error t value Pr(>|t|)    
+    (Intercept)                         1.0695     0.3231   3.310 0.002740 ** 
+    SiteKelseytown Rd Cockaponset       2.2941     0.6187   3.708 0.000997 ***
+    SiteMeshomasic Kongcut Mtn         -0.2010     0.4172  -0.482 0.633994    
+    SitePortland Reservoir Meshomasic   0.1062     0.4730   0.225 0.824091    
+    ---
+    Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+    Residual standard error: 0.9139 on 26 degrees of freedom
+    Multiple R-squared:  0.4156,    Adjusted R-squared:  0.3482 
+    F-statistic: 6.164 on 3 and 26 DF,  p-value: 0.002621
+
+# Natural membracid density in 2022 (membracids/<sup>2</sup>)
+
+| Site                          |  mean |    sd |
+|:------------------------------|------:|------:|
+| Cockaponset pit               | 1.070 | 0.685 |
+| Kelseytown Rd Cockaponset     | 3.364 | 2.629 |
+| Meshomasic Kongcut Mtn        | 0.869 | 0.454 |
+| Portland Reservoir Meshomasic | 1.176 | 0.625 |
+| Overall                       | 1.243 | 1.132 |
 
 # Ants:
 

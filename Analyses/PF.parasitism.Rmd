@@ -60,6 +60,8 @@ para.all.years <- read.csv("data/para.all.years.csv")
 
 ant.data <- read.csv("data/pf.19.22.csv")
 
+raw2022 <- read.csv("data/2022.raw.csv")
+
 
 ####################################################
 #                    Functions                     #
@@ -190,7 +192,53 @@ para.pf2 <- para.by.spp %>%
                  names_to = "para",
                  values_to = "para_count")
 
+
+#########################################
+# natural density of phloem-feeders
+
+pf.dens <- raw2022 %>% 
+  select(Site, Number.of.leaves, Phloem.feeders.found,
+         Number.phloem.feeders, Density.phloem.feeders) %>% 
+  mutate(membracid = if_else(grepl("mem", Phloem.feeders.found),
+                             "yes", "no")) %>% 
+  filter(membracid == "yes") %>% 
+  mutate(mem.count = as.numeric(substr(Phloem.feeders.found,
+                            start = 1, stop = 1))) %>% 
+  mutate(leaf.area.m2 = 0.0100 * Number.of.leaves,
+         mem.density = mem.count / leaf.area.m2)
+
+pf.dens.mod <- lm(mem.density ~ Site, data = pf.dens)
+
+anova(pf.dens.mod)
+summary(pf.dens.mod)
+
+
+total.mem.dens <- pf.dens %>% 
+  summarise(mean = mean(mem.density),
+            sd = sqrt(var(mem.density))) %>% 
+  mutate(Site = "Overall")
+
+col_order <- c("Site", "mean", "sd")
+
+total.mem.dens <- total.mem.dens[, col_order]
+
+site.mem.dens <- pf.dens %>% 
+  group_by(Site) %>% 
+  summarise(mean = mean(mem.density),
+            sd = sqrt(var(mem.density)))
+
+mem.density <- bind_rows(site.mem.dens, total.mem.dens)
+
 ```
+
+# Natural membracid density in 2022 (membracids/^2^)
+
+```{r, membracid_density, echo = F}
+
+kable(mem.density, digits = 3, format = "markdown")
+
+```
+
 
 
 # Ants:
