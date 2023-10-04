@@ -231,7 +231,7 @@ mem.density <- bind_rows(site.mem.dens, total.mem.dens)
 
 ```
 
-# Natural membracid density in 2022 (membracids/^2^)
+# Natural membracid density in 2022 (membracids/m^2^)
 
 ```{r, membracid_density, echo = F}
 

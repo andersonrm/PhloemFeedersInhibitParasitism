@@ -6,9 +6,9 @@ October 04, 2023
 - <a href="#overview" id="toc-overview">Overview</a>
   - <a href="#summary-of-results" id="toc-summary-of-results">Summary of
     Results</a>
-- <a href="#natural-membracid-density-in-2022-membracids2"
-  id="toc-natural-membracid-density-in-2022-membracids2">Natural membracid
-  density in 2022 (membracids/<sup>2</sup>)</a>
+- <a href="#natural-membracid-density-in-2022-membracidsm2"
+  id="toc-natural-membracid-density-in-2022-membracidsm2">Natural
+  membracid density in 2022 (membracids/m<sup>2</sup>)</a>
 - <a href="#ants" id="toc-ants">Ants:</a>
   - <a href="#2019--2022-comparison-of-ant-treatments-on-parasitism"
     id="toc-2019--2022-comparison-of-ant-treatments-on-parasitism">2019
@@ -106,7 +106,7 @@ posterior distributions of the binomial GLMs.
     Multiple R-squared:  0.4156,    Adjusted R-squared:  0.3482 
     F-statistic: 6.164 on 3 and 26 DF,  p-value: 0.002621
 
-# Natural membracid density in 2022 (membracids/<sup>2</sup>)
+# Natural membracid density in 2022 (membracids/m<sup>2</sup>)
 
 | Site                          |  mean |    sd |
 |:------------------------------|------:|------:|
