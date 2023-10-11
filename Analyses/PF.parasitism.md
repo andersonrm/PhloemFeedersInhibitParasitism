@@ -1,7 +1,7 @@
 Phloem Feeding Insects Inhibit Caterpillar Parasitism
 ================
 Riley M. Anderson
-October 04, 2023
+October 11, 2023
 
 - <a href="#overview" id="toc-overview">Overview</a>
   - <a href="#summary-of-results" id="toc-summary-of-results">Summary of
@@ -9,6 +9,17 @@ October 04, 2023
 - <a href="#natural-membracid-density-in-2022-membracidsm2"
   id="toc-natural-membracid-density-in-2022-membracidsm2">Natural
   membracid density in 2022 (membracids/m<sup>2</sup>)</a>
+- <a href="#setup-metrics-in-2019" id="toc-setup-metrics-in-2019">Setup
+  metrics in 2019</a>
+  - <a href="#membracid-density-all-sampled-branches"
+    id="toc-membracid-density-all-sampled-branches">Membracid density (all
+    sampled branches)</a>
+  - <a href="#membracid-density-only-branches-with-phloem-feeders"
+    id="toc-membracid-density-only-branches-with-phloem-feeders">Membracid
+    density (only branches with phloem-feeders)</a>
+  - <a href="#caterpillar-density-all-sampled-branches"
+    id="toc-caterpillar-density-all-sampled-branches">Caterpillar density
+    (all sampled branches)</a>
 - <a href="#ants" id="toc-ants">Ants:</a>
   - <a href="#2019--2022-comparison-of-ant-treatments-on-parasitism"
     id="toc-2019--2022-comparison-of-ant-treatments-on-parasitism">2019
@@ -115,6 +126,26 @@ posterior distributions of the binomial GLMs.
 | Meshomasic Kongcut Mtn        | 0.869 | 0.454 |
 | Portland Reservoir Meshomasic | 1.176 | 0.625 |
 | Overall                       | 1.243 | 1.132 |
+
+# Setup metrics in 2019
+
+## Membracid density (all sampled branches)
+
+|  mean |    sd | Nbranches | NPFbranches | freq.PFbranches |
+|------:|------:|----------:|------------:|----------------:|
+| 0.408 | 0.908 |       125 |          34 |           0.272 |
+
+## Membracid density (only branches with phloem-feeders)
+
+| mean |    sd |
+|-----:|------:|
+|  1.5 | 1.218 |
+
+## Caterpillar density (all sampled branches)
+
+| mean |    sd |
+|-----:|------:|
+| 3.12 | 2.632 |
 
 # Ants:
 

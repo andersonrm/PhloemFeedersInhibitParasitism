@@ -62,6 +62,7 @@ ant.data <- read.csv("data/pf.19.22.csv")
 
 raw2022 <- read.csv("data/2022.raw.csv")
 
+setup <- read.csv("data/Riley.sf.setup.2019.csv")
 
 ####################################################
 #                    Functions                     #
@@ -113,6 +114,33 @@ The statistical approach uses Fisher tests wherever possible for simplicity. How
 * Across all four years, caterpillars were never parasitized in the presence of phloem-feeding insects (Fisher's exact test: *P* < 0.001, two tailed test).
 
 ```{r Data_Wrangling, echo = F, comment = ""}
+
+# Experimental setup
+setup1 <- setup %>% 
+  select(branchID, type, treehoppers) %>% 
+  distinct()
+
+all.branches <- setup1 %>% 
+  summarise(mean = mean(treehoppers),
+            sd = sqrt(var(treehoppers))) %>% 
+  mutate(Nbranches = nrow(setup1),
+         NPFbranches = nrow(filter(setup1, treehoppers > 0)),
+         freq.PFbranches = NPFbranches/Nbranches)
+
+PF.branches <- setup1 %>% 
+  filter(type == "experimental") %>% 
+  summarise(mean = mean(treehoppers),
+            sd = sqrt(var(treehoppers)))
+
+cat.density <- setup %>% 
+  select(branchID, counts) %>% 
+  mutate(branchID = factor(branchID)) %>% 
+  group_by(branchID) %>% 
+  summarise(cats = sum(counts)) %>% 
+  ungroup() %>% 
+  summarise(mean = mean(cats),
+            sd = sqrt(var(cats)))
+  
 
 # Ant data:
 ant.data <- ant.data %>% 
@@ -239,6 +267,28 @@ kable(mem.density, digits = 3, format = "markdown")
 
 ```
 
+# Setup metrics in 2019
+
+## Membracid density (all sampled branches)
+```{r mem_dens_all, echo = F}
+
+kable(all.branches, digits = 3, format = "markdown")
+
+```
+
+## Membracid density (only branches with phloem-feeders)
+```{r mem_dens_PF, echo = F}
+
+kable(PF.branches, digits = 3, format = "markdown")
+
+```
+
+## Caterpillar density (all sampled branches)
+```{r cat_dens_all, echo = F}
+
+kable(cat.density, digits = 3, format = "markdown")
+
+```
 
 
 # Ants:
