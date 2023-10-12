@@ -235,10 +235,6 @@ pf.dens <- raw2022 %>%
   mutate(leaf.area.m2 = 0.0100 * Number.of.leaves,
          mem.density = mem.count / leaf.area.m2)
 
-pf.dens.mod <- lm(mem.density ~ Site, data = pf.dens)
-
-anova(pf.dens.mod)
-summary(pf.dens.mod)
 
 
 total.mem.dens <- pf.dens %>% 
@@ -266,6 +262,20 @@ mem.density <- bind_rows(site.mem.dens, total.mem.dens)
 kable(mem.density, digits = 3, format = "markdown")
 
 ```
+
+
+# Natural membracid density in 2022 (membracids/branch)
+
+```{r, membracid_density_per_branch, echo = F}
+
+mems.branch <- pf.dens %>% 
+  summarise(mean = mean(mem.count),
+            sd = sqrt(var(mem.count)))
+
+kable(mems.branch, digits = 3, format = "markdown")
+
+```
+
 
 # Setup metrics in 2019
 
