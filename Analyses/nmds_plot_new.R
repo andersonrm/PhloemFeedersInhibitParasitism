@@ -33,7 +33,7 @@ centroids <- nmds_data |> group_by(exclusion, taxon, treatment) |>
                 linetype = "dashed") +
   labs(x = "NMDS1", y = "NMDS2", shape = "Treatment", color = "Taxon") +
   scale_shape_manual(values=c(1, 16)) +
-  theme_minimal()
+  theme_classic()
 
 # Display the NMDS plot
 print(plot_nmds)
