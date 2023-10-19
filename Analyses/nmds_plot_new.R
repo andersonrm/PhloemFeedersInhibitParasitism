@@ -74,7 +74,7 @@ nmdsmeta <- data.frame(
 
 nmdsmeta$group <- as.factor(nmdsmeta$group)
 
-
+plot(nmds)
 ord <- ordiellipse(nmds,
                    nmds_data$treatment,
                    display = "sites",
@@ -105,8 +105,8 @@ ell.fig <- ggplot(nmds_data, aes(x = MDS1, y = MDS2,
                                    colour = taxon , shape = exclusion)) +
   geom_point(size = 2, show.legend=FALSE) +
   geom_point(data = centroids, size = 5) +
-  geom_path(data = df_ell,
-            aes(x = NMDS1, y = NMDS2)) +
+  geom_polygon(data = df_ell,
+            aes(x = NMDS1, y = NMDS2, fill = taxon), alpha = 0.1, colour = NA) +
   # geom_segment(data = nmds_data,
   #              aes(xend = centroids$MDS1[match(treatment,
   #                                              centroids$treatment)], 
@@ -115,6 +115,7 @@ ell.fig <- ggplot(nmds_data, aes(x = MDS1, y = MDS2,
   #              linetype = "dashed") +
   labs(x = "NMDS1", y = "NMDS2", shape = "Treatment", color = "Taxon") +
   scale_shape_manual(values=c(1, 16)) +
+  scale_fill_discrete(guide = "none") +
   theme_classic(base_size = 20)
 
 ######
