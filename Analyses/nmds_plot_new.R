@@ -116,7 +116,7 @@ ell.fig <- ggplot(nmds_data, aes(x = MDS1, y = MDS2,
   labs(x = "NMDS1", y = "NMDS2", shape = "Treatment", color = "Taxon") +
   scale_shape_manual(values=c(1, 16)) +
   scale_fill_discrete(guide = "none") +
-  theme_classic(base_size = 20)
+  theme_classic(base_size = 15)
 
 ######
 # print the fig
