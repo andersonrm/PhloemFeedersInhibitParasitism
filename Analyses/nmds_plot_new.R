@@ -106,18 +106,33 @@ ell.fig <- ggplot(nmds_data, aes(x = MDS1, y = MDS2,
   geom_point(size = 2, show.legend=FALSE) +
   geom_point(data = centroids, size = 5) +
   geom_polygon(data = df_ell,
-            aes(x = NMDS1, y = NMDS2, fill = taxon), alpha = 0.1, colour = NA) +
-  # geom_segment(data = nmds_data,
-  #              aes(xend = centroids$MDS1[match(treatment,
-  #                                              centroids$treatment)], 
-  #                  yend = centroids$MDS2[match(treatment,
-  #                                              centroids$treatment)]), 
-  #              linetype = "dashed") +
+            aes(x = NMDS1, y = NMDS2, fill = taxon), 
+            alpha = 0.1, color = NA) +
   labs(x = "NMDS1", y = "NMDS2", shape = "Treatment", color = "Taxon") +
   scale_shape_manual(values=c(1, 16)) +
   scale_fill_discrete(guide = "none") +
   theme_classic(base_size = 15)
 
+
+ell.fig.color <- ggplot(nmds_data, aes(x = MDS1, y = MDS2, 
+                      fill = taxon, 
+                      color = taxon,
+                      shape = exclusion)) +
+  geom_point(size = 2, show.legend=F) +
+  geom_point(data = centroids, size = 5, show.legend = T) +
+  geom_polygon(data = df_ell,
+               aes(x = NMDS1, y = NMDS2, fill = taxon), 
+               alpha = 0.3, color = NA,
+               show.legend = F) +
+  labs(x = "NMDS1", y = "NMDS2", shape = "Treatment", color = "Taxon") +
+  scale_shape_manual(values=c(1, 16)) +
+  # scale_color_discrete(guide = "none") +
+  theme_classic(base_size = 15) +
+  scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
+  scale_color_manual(values = c("#D55E00", "#56B4E9"))
+
 ######
 # print the fig
 print(ell.fig)
+
+print(ell.fig.color)

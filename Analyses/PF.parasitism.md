@@ -1,56 +1,37 @@
 Phloem Feeding Insects Inhibit Caterpillar Parasitism
 ================
 Riley M. Anderson
-October 12, 2023
+October 31, 2023
 
-- <a href="#overview" id="toc-overview">Overview</a>
-  - <a href="#summary-of-results" id="toc-summary-of-results">Summary of
-    Results</a>
-- <a href="#natural-membracid-density-in-2022-membracidsm2"
-  id="toc-natural-membracid-density-in-2022-membracidsm2">Natural
-  membracid density in 2022 (membracids/m<sup>2</sup>)</a>
-- <a href="#natural-membracid-density-in-2022-membracidsbranch"
-  id="toc-natural-membracid-density-in-2022-membracidsbranch">Natural
-  membracid density in 2022 (membracids/branch)</a>
-- <a href="#setup-metrics-in-2019" id="toc-setup-metrics-in-2019">Setup
-  metrics in 2019</a>
-  - <a href="#membracid-density-all-sampled-branches"
-    id="toc-membracid-density-all-sampled-branches">Membracid density (all
-    sampled branches)</a>
-  - <a href="#membracid-density-only-branches-with-phloem-feeders"
-    id="toc-membracid-density-only-branches-with-phloem-feeders">Membracid
-    density (only branches with phloem-feeders)</a>
-  - <a href="#caterpillar-density-all-sampled-branches"
-    id="toc-caterpillar-density-all-sampled-branches">Caterpillar density
-    (all sampled branches)</a>
-- <a href="#ants" id="toc-ants">Ants:</a>
-  - <a href="#2019--2022-comparison-of-ant-treatments-on-parasitism"
-    id="toc-2019--2022-comparison-of-ant-treatments-on-parasitism">2019
-    &amp; 2022 comparison of ant treatments on parasitism</a>
-  - <a href="#ant-figure" id="toc-ant-figure">Ant figure</a>
-  - <a
-    href="#logistic-model-of-the-factorial-ant--pf-treatments-on-parasitism"
-    id="toc-logistic-model-of-the-factorial-ant--pf-treatments-on-parasitism">Logistic
-    model of the factorial ant &amp; pf treatments on parasitism</a>
-  - <a href="#ant--pf-means-and-cis-figure"
-    id="toc-ant--pf-means-and-cis-figure">Ant &amp; PF means and CIs
-    figure</a>
-- <a href="#phloem-feeders" id="toc-phloem-feeders">Phloem-feeders:</a>
-  - <a
-    href="#2019-2022-parasitism-analysis-of-phloem-feeders-via-fishers-exact-test"
-    id="toc-2019-2022-parasitism-analysis-of-phloem-feeders-via-fishers-exact-test">2019-2022
-    parasitism analysis of phloem-feeders via Fisher’s Exact Test</a>
-  - <a
-    href="#2019-2022-parasitism-analysis-of-phloem-feeders-via-binomial-glm"
-    id="toc-2019-2022-parasitism-analysis-of-phloem-feeders-via-binomial-glm">2019-2022
-    parasitism analysis of phloem-feeders via binomial GLM</a>
-  - <a href="#phloem-feeder-figure"
-    id="toc-phloem-feeder-figure">Phloem-feeder figure</a>
-  - <a href="#parasitism-by-caterpillar-species-and-pf-treatment-figure"
-    id="toc-parasitism-by-caterpillar-species-and-pf-treatment-figure">Parasitism
-    by caterpillar species and PF treatment figure</a>
-- <a href="#session-information" id="toc-session-information">Session
-  Information</a>
+- [Overview](#overview)
+  - [Summary of Results](#summary-of-results)
+- [Natural membracid density in 2022
+  (membracids/m<sup>2</sup>)](#natural-membracid-density-in-2022-membracidsm2)
+- [Natural membracid density in 2022
+  (membracids/branch)](#natural-membracid-density-in-2022-membracidsbranch)
+- [Setup metrics in 2019](#setup-metrics-in-2019)
+  - [Membracid density (all sampled
+    branches)](#membracid-density-all-sampled-branches)
+  - [Membracid density (only branches with
+    phloem-feeders)](#membracid-density-only-branches-with-phloem-feeders)
+  - [Caterpillar density (all sampled
+    branches)](#caterpillar-density-all-sampled-branches)
+- [Ants:](#ants)
+  - [2019 & 2022 comparison of ant treatments on
+    parasitism](#2019--2022-comparison-of-ant-treatments-on-parasitism)
+  - [Ant figure](#ant-figure)
+  - [Logistic model of the factorial ant & pf treatments on
+    parasitism](#logistic-model-of-the-factorial-ant--pf-treatments-on-parasitism)
+  - [Ant & PF means and CIs figure](#ant--pf-means-and-cis-figure)
+- [Phloem-feeders:](#phloem-feeders)
+  - [2019-2022 parasitism analysis of phloem-feeders via Fisher’s Exact
+    Test](#2019-2022-parasitism-analysis-of-phloem-feeders-via-fishers-exact-test)
+  - [2019-2022 parasitism analysis of phloem-feeders via binomial
+    GLM](#2019-2022-parasitism-analysis-of-phloem-feeders-via-binomial-glm)
+  - [Phloem-feeder figure](#phloem-feeder-figure)
+  - [Parasitism by caterpillar species and PF treatment
+    figure](#parasitism-by-caterpillar-species-and-pf-treatment-figure)
+- [Session Information](#session-information)
 
 # Overview
 

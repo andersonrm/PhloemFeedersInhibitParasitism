@@ -177,9 +177,9 @@ pf.ant.fig.data <- pf.ant.fig.data %>%
   mutate(mem.treat = factor(mem.treat),
          ant.treat = factor(ant.treat))
 
-levels(pf.ant.fig.data$ant.treat) <- c("Ant Access", "Ant Exclusion") 
+levels(pf.ant.fig.data$ant.treat) <- c("Ant access", "Ant exclusion") 
 levels(pf.ant.fig.data$para) <- c("Unparasitized", "Parasitized")
-levels(pf.ant.fig.data$mem.treat) <- c("Removed", "Replaced")
+levels(pf.ant.fig.data$mem.treat) <- c("removed", "replaced")
 
 
 # Phloem-feeder parasitism data:
@@ -322,11 +322,11 @@ ggplot(pf.ant.fig.data,
     facet_wrap(~ ant.treat) +
     theme_classic(base_size = 20) +
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
-    scale_fill_manual(values = c("gray80", "grey36")) +
+    scale_fill_manual(values = c("#56B4E9", "#D55E00")) +
     scale_y_continuous(limits = c(0, 45)) +
     labs(x = "Phloem-feeder treatment",
          y = "Caterpillar\ncount",
-         fill = "Caterpillars") +
+         fill = "Parasitism") +
     theme(legend.title.align = 0.5, strip.background=element_blank())
 
 
@@ -515,8 +515,7 @@ ggplot(para.pf1,
            color = "black",
            size = 7) +
   theme(text = element_text(size = 22)) +
-  scale_fill_manual(values = c("grey17",
-                               "grey54")) +
+  scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
   theme(legend.position = c(.8, .5))
     
 
