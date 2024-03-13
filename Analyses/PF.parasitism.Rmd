@@ -46,7 +46,8 @@ library(cowplot)
 library(lme4)
 library(knitr)
 library(forcats)
-
+library(emmeans)
+library(multcomp)
 
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # @@@@@ Data Preparation
@@ -413,7 +414,13 @@ This figure is a visual representation of the logistic model approach (as oppose
 ```{r ant_pf_logistic_model_parametric_CIs_fig, echo = F}
 
 # model:
-ant.pf.mod
+em1 <- emmeans(ant.pf.mod, ~mem.treat * ant.treat)
+
+
+em1cld <- cld(em1, type = "response",
+              letters = "abcde")
+
+em1cld <- as_tibble(em1cld)
 
 ggplot(plotres.ant, aes(x = treatment, y = parasitized,
                         ymin = lcl, ymax = ucl)) +
@@ -421,6 +428,18 @@ ggplot(plotres.ant, aes(x = treatment, y = parasitized,
   theme_classic(base_size = 22) +
   labs(x = "Phloem-feeder & Ant treatment",
        y = "Probability of Parasitism")
+
+em1cld <- em1cld %>% 
+  unite(x, mem.treat, ant.treat, sep = "_")
+
+ggplot(em1cld, aes(x = x, y = prob)) +
+  geom_point(size = 2) + 
+  geom_errorbar(aes(ymin = prob - SE,
+                    ymax = prob + SE),
+                width = 0.2) +
+  ylim(0, .75) +
+  
+
 
 ```
 
