@@ -205,6 +205,48 @@ Anova(pf.mod)
 
 ```
 
+```{r pf_glmm_Robi, echo = F}
+
+# ideal model:
+# 
+## don't include ant_treatment as a random effect. With 2 levels it's 
+## meaningless. Just leave it out or include as a fixed effect (perhaps 
+## make it sum-to-zero contrasts so other coefficients are expressed at 
+## their sum
+## Could also make that argument for year (note that year has a 
+## vanishingly small effect, which is throwing the errors in glmer
+
+dat1$year <- factor(dat1$year)
+dat1$site <- factor(dat1$site)
+dat1$y <- as.numeric(dat1$para) - 1
+pf.mod <- glmmTMB(y ~ year + pf_treatment + 
+                    (1 | site) + (1|cat_species),
+                  data = dat1, family = binomial(),
+                  contrasts = list(year = "contr.sum"))
+
+
+summary(pf.mod) # doesn't work
+Anova(pf.mod_mer) 
+
+## use likelihood ratio test
+pf.mod0 <- update(pf.mod, ~.-pf_treatment)
+anova(pf.mod, pf.mod0) ## very strong reduction of deviance with addition of 
+## pf treatment
+sims <- simulate(pf.mod0, 10)
+## bootstrap
+nsim <- 99
+dev_pf <- deviance(pf.mod0) - deviance(pf.mod)
+test <- sapply(1:nsim, function(i, mod0, mod1){
+  new_y <- simulate(mod0)[,1]
+  mod0_new <- refit(mod0, new_y)
+  mod1_new <- refit(mod1, new_y)
+  dev <- deviance(mod0_new) - deviance(mod1_new)
+  return(dev)
+}, mod0 = pf.mod0, mod1 = pf.mod)
+
+sum(test > deviance(pf.mod0) - deviance(pf.mod))/(nsim + 1)
+hist(test, xlim = c(0, max(dev_pf, test)*1.5)); abline(v = dev_pf)
+```
 
 # Session Information
 
