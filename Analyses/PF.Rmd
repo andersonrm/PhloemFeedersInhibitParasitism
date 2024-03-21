@@ -62,27 +62,6 @@ dat1 <- read.csv("data/data.19.20.21.22.csv")
 #                    Functions                     #
 ####################################################
 
-# parametric bootstrap confidence intervals for ant model:
-bootfun.ant <- function(mod, dat){
-  dat$newy <- simulate(mod)[[1]]
-  mod_sim <- glm(newy ~ mem.treat * ant.treat, 
-            data = dat, 
-            family = binomial)
- plogis(c(coef(mod_sim)[1],
-         coef(mod_sim)[2] + coef(mod_sim)[1],
-         coef(mod_sim)[3] + coef(mod_sim)[1],
-         coef(mod_sim)[4] + coef(mod_sim)[2]))
-}
-
-# Parametric bootstrap for the PF binomial model
-bootfun <- function(mod, dat){
-  dat$newy <- simulate( mod)[[1]]
-  mod_sim <- glm(newy ~ treatment, 
-            data = dat, 
-            family = binomial, weights = yes + no)
- plogis(c(coef(mod_sim)[1], sum(coef(mod_sim))))
-}
-
 
 # Function to scale the range of values so that they are always positive or always negative, respectively
 
@@ -95,23 +74,12 @@ range01 <- function(x){
 
 # Overview
 
-This analysis tests two hypotheses on the putative keystone effects of phloem-feeding insects. One keystone effect is the influence that phloem-feeders have on caterpillar-parasitoid interactions. These interactions may be mediated through ants (via symbiosis that attracts ants which can deter parasitoids) or plants (via phytohormonal crosstalk). The basic experimental design manipulates phloem-feeder presence by removing phloem-feeders or by removing and then replacing them. This experiment was carried out over 4 years, two of which were paired with an experimental ant manipulation (ants were excluded or ants had access). See *Anderson et al. _______* for details.
-
-The statistical approach uses Fisher tests wherever possible for simplicity. However, we also employ the use of logistic regression models to analyze the factorial design in the ant experiment and to estimate predicted means and 95% confidence intervals. These statistics are estimated from parametric bootstraps of 1000 simulations from the posterior distributions of the binomial GLMs.
-
-
-### Summary of Results
-* Across four years, we experimentally manipulated `r nrow(para.all.years)` branches on white oak (*Quercus alba*) trees. 
-
-* In 2019 and 2022 we implemented a factorial ant and phloem-feeder exclusion experiment. These experiments show that ants had no effect on parasitism. The distribution of parasitized caterpillars was essentially random across ant treatments (Fisher's exact test: *P* = 0.570, two-tailed test). Logistic regression of the two-way interaction confirms that the parasitism effect is independent of ant treatment.
-
-* Across all four years, caterpillars were never parasitized in the presence of phloem-feeding insects (Fisher's exact test: *P* < 0.001, two tailed test).
 
 ```{r Data_Wrangling, echo = F, comment = ""}
 
 dat1 <- dat1 %>% 
-  mutate(across(c(branchID : para), as.factor))
-
+  mutate(across(c(branchID : para), as.factor),
+         para = as.numeric(para) - 1)
 
 ```
 
@@ -120,95 +88,47 @@ dat1 <- dat1 %>%
 # Ants and Phloem-feeders:
 
 ## GLMM approach
-```{r ant_glmm, echo = F}
+```{r pf_ant_glmm, echo = F}
 
-# ideal model:
-ant.mod <- glmmTMB(para ~ pf_treatment * ant_treatment +
-                     (1 | year) + (1 | site),
+
+mod1.interaction <- glmmTMB(para ~ pf_treatment * ant_treatment +
+                     year + (1 | site) + (1 | cat_species),
                    family = binomial(),
-                   data = filter(dat1,
-                                 year == "2019" | 
-                                   year == "2022"))
-                # note: the above runs with no error. with glmer(), it throws
-                # a singularity warning which prevents Boot() from evaluating.
-
-summary(ant.mod)
-# can't estimate the effect properly
-
-######################################################
-# testing a simpler model:
+                   contrasts = list(year = "contr.sum"),
+                data = filter(dat1, year == "2019" | year == "2022"))
+                # doesn't converge with data = dat1
 
 
-# car::Boot appears to not work with random effects. Maybe bootMer instead?
+# Likelihood ratio tests:
+mod2.additive.only <- update(mod1.interaction, ~ . -pf_treatment : ant_treatment)
 
-#simpler model:
-ant.mod1 <- glm(para ~ pf_treatment * ant_treatment,
-                family = binomial(),
-                data = filter(dat1, year == "2019" |
-                                year == "2022"))
+mod3.pf.only <- update(mod2.additive.only, ~ . -ant_treatment)
 
-boot.ants <- Boot(ant.mod1, R = 999)
+mod4.no.pf <- update(mod3.pf.only, ~ . -pf_treatment)
 
-Confint(boot.ants, type = "bca")
+results <- as_tibble(anova(mod1.interaction,
+                           mod2.additive.only,
+                           mod3.pf.only, mod4.no.pf,
+                           test = "LRT"),
+                     rownames = "LRT_models")
 
-boot.pval(boot.ants)
+lrt.names <- c("Null model", "Phloem-feeders",
+               "Phloem-feeders + Ants",
+               "Phloem-feeders x Ants")
 
+results <- results %>% 
+  mutate(LRT_models = lrt.names)
 
-Anova(ant.mod1)
+results
 
-```
-
-## ML approach
-
-```{r ant_ML, echo = F}
-
-
-library(randomForest)
-library(caret)
-
-
-ant.rf <- randomForest(para ~ pf_treatment + ant_treatment + year + site,
-                       data = dat1)
-
-train(para ~ pf_treatment + ant_treatment + year + site,
-                       data = dat1,
-      method = "rf")
-
-
-update(ant.rf, mtry = 2, ntree = 100)
-
-varImpPlot(ant.rf)
-
-
-
+kable(results, format = "markdown", digits = 3)
 
 ```
 
-Random forest ignores ants completely. Doesn't account for the year/site structure.
-
-
-# Phloem-feeders:
-
-## GLMM approach
-```{r pf_glmm, echo = F}
-
-# ideal model:
-pf.mod <- glmmTMB(para ~ pf_treatment + 
-                    (1 | site) + (1 | year) + (1 | ant_treatment),
-                  data = dat1, family = binomial())
-
-summary(pf.mod) # doesn't work
-Anova(pf.mod)
-
-
-
-
-```
 
 ```{r pf_glmm_Robi, echo = F}
 
-# ideal model:
-# 
+ 
 ## don't include ant_treatment as a random effect. With 2 levels it's 
 ## meaningless. Just leave it out or include as a fixed effect (perhaps 
 ## make it sum-to-zero contrasts so other coefficients are expressed at 
@@ -216,36 +136,37 @@ Anova(pf.mod)
 ## Could also make that argument for year (note that year has a 
 ## vanishingly small effect, which is throwing the errors in glmer
 
-dat1$year <- factor(dat1$year)
-dat1$site <- factor(dat1$site)
-dat1$y <- as.numeric(dat1$para) - 1
-pf.mod <- glmmTMB(y ~ year + pf_treatment + 
-                    (1 | site) + (1|cat_species),
-                  data = dat1, family = binomial(),
-                  contrasts = list(year = "contr.sum"))
-
-
-summary(pf.mod) # doesn't work
-Anova(pf.mod_mer) 
-
-## use likelihood ratio test
-pf.mod0 <- update(pf.mod, ~.-pf_treatment)
-anova(pf.mod, pf.mod0) ## very strong reduction of deviance with addition of 
-## pf treatment
-sims <- simulate(pf.mod0, 10)
-## bootstrap
-nsim <- 99
-dev_pf <- deviance(pf.mod0) - deviance(pf.mod)
-test <- sapply(1:nsim, function(i, mod0, mod1){
-  new_y <- simulate(mod0)[,1]
-  mod0_new <- refit(mod0, new_y)
-  mod1_new <- refit(mod1, new_y)
-  dev <- deviance(mod0_new) - deviance(mod1_new)
-  return(dev)
-}, mod0 = pf.mod0, mod1 = pf.mod)
-
-sum(test > deviance(pf.mod0) - deviance(pf.mod))/(nsim + 1)
-hist(test, xlim = c(0, max(dev_pf, test)*1.5)); abline(v = dev_pf)
+# pf.mod <- glmmTMB(para ~ year + pf_treatment + 
+#                     (1 | site) + (1 | cat_species),
+#                   data = dat1, family = binomial(),
+#                   contrasts = list(year = "contr.sum"))
+# 
+# 
+# summary(pf.mod) # doesn't work
+# 
+# 
+# ## use likelihood ratio test
+# pf.mod0 <- update(pf.mod, ~.-pf_treatment)
+# anova(pf.mod, pf.mod0) ## very strong reduction of deviance with addition of 
+# ## pf treatment
+# sims <- simulate(pf.mod0, 10)
+# ## bootstrap
+# nsim <- 99
+# dev_pf <- deviance(pf.mod0) - deviance(pf.mod)
+# test <- sapply(1:nsim, function(i, mod0, mod1){
+#   new_y <- simulate(mod0)[,1]
+#   mod0_new <- refit(mod0, new_y)
+#   mod1_new <- refit(mod1, new_y)
+#   dev <- deviance(mod0_new) - deviance(mod1_new)
+#   return(dev)
+# }, mod0 = pf.mod0, mod1 = pf.mod)
+# 
+# sum(test > deviance(pf.mod0) - deviance(pf.mod))/(nsim + 1)
+# hist(test, xlim = c(0, max(dev_pf, test)*1.5)); abline(v = dev_pf)
+# 
+# 
+# 
+# anova(pf.mod, pf.mod0, test = "LRT")
 ```
 
 # Session Information
