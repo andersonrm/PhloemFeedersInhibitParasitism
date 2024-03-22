@@ -125,7 +125,7 @@ kable(results, format = "markdown", digits = 3)
 
 ```
 
-```{r new_pf_figure2, echo = F, fig.width = 9}
+```{r new_pf_figure2, echo = F, fig.width = 10}
 library(ggpattern)
 
 Atest <- dat1 %>% 
