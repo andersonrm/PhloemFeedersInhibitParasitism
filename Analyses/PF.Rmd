@@ -30,7 +30,7 @@ knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 #  set default figure size to 6x8 at 300 dpi, and save a png and pdf
 knitr::opts_chunk$set(warning = F, message = F, collapse = T, cache = T,
     fig.height = 6, fig.width = 8, dpi = 300, # 6x8" @ 300dpi:1800x2400=4.3MP
-    dev = c('png', 'pdf'), dev.args = list(pdf = list(onefile = F)))
+    dev = c('png', 'pdf', 'tiff'), dev.args = list(pdf = list(onefile = F)))
 
 ```
 
@@ -125,6 +125,72 @@ kable(results, format = "markdown", digits = 3)
 
 ```
 
+```{r new_pf_figure2, echo = F, fig.width = 9}
+library(ggpattern)
+
+Atest <- dat1 %>% 
+  mutate(para = factor(para)) %>% 
+  ggplot(aes(x = year, y = para,
+             color = pf_treatment, shape = ant_treatment)) +
+  geom_jitter(height = .4, width = .22, size = 3) +
+  scale_color_manual(values = c("#D57E00", "#56B4E9")) +
+  scale_y_discrete(labels = c("not parasitized", "parasitized")) +
+  labs(x = "Year", y = "",
+       color = "Phloem-feeders",
+       shape = "Ants") +
+  geom_hline(yintercept = 1.5, linetype = "dashed") +
+  theme_cowplot(font_size = 18) +
+  coord_flip()
+
+A <- dat1 %>% 
+  mutate(para = factor(para)) %>% 
+  ggplot(aes(x = year, y = para,
+             color = pf_treatment, shape = ant_treatment)) +
+  geom_jitter(height = .4, width = .15, size = 3) +
+  scale_color_manual(values = c("#D57E00", "#56B4E9")) +
+  scale_y_discrete(labels = c("", ""),
+                   expand = c(.15, 0.3)) +
+  labs(x = "Year", y = "",
+       color = "Phloem-feeders",
+       shape = "Ants") +
+  geom_hline(yintercept = 1.5, linetype = "dashed") +
+  theme_cowplot(font_size = 18) +
+  coord_flip() +
+  theme(legend.position = "none")
+
+  
+B <- dat1 %>% 
+  mutate(para = factor(para)) %>% 
+  ggplot(aes(x = site, y = para,
+             color = pf_treatment, shape = ant_treatment)) +
+  geom_jitter(height = .4, width = .15, size = 3) +
+  scale_color_manual(values = c("#D57E00", "#56B4E9")) +
+  scale_y_discrete(labels = c("not parasitized", "parasitized"),
+                   expand = c(0.15, .3)) +
+  scale_x_discrete(labels = c(" CK ", " CP ", " GH ", " MS ",  " PR ")) +
+  labs(x = "Site", y = "",
+       color = "Phloem-feeders",
+       shape = "Ants") +
+  geom_hline(yintercept = 1.5, linetype = "dashed") +
+  theme_cowplot(font_size = 18) +
+  coord_flip() +
+  theme(legend.position = "none")
+
+grobs <- ggplotGrob(Atest)$grobs
+
+legend <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
+
+p1 <- plot_grid(A, NULL, B, labels = c("A", "", "B"),
+          ncol = 1, nrow = 3, rel_heights = c(1, -0.2, 1),
+          greedy = T)
+
+plot_grid(p1, legend, ncol = 2,
+          rel_widths = c(.45, 0.1),
+          rel_heights = c(4, 4))
+
+```
+
+**Figure 2.** Caterpillar parasitism patterns across years (A) and sites (B) by experimental phloem-feeder manipulation (removal in orange, replacement in blue) and experimental ant treatment (ant access in circles, ant exclusion in triangles). Each point is a single caterpillar. Points are jittered for clarity. For detailed description of sites, tree replicates, and caterpillar sample sizes, see table S1.
 
 ```{r pf_glmm_Robi, echo = F}
 
