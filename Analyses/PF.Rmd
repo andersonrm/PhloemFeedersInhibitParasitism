@@ -83,7 +83,22 @@ dat1 <- dat1 %>%
 
 ```
 
+# Recovery Rates:
 
+```{r recovery, echo = F}
+
+recovery <- dat1 %>% 
+  group_by(year, site, pf_treatment, ant_treatment) %>% 
+  tally()
+
+
+rec.mod <- glm(n ~ pf_treatment + ant_treatment + year + site,
+               data = recovery, family = poisson(),
+               contrasts = list(site = "contr.sum"))
+
+summary(rec.mod)
+
+```
 
 # Ants and Phloem-feeders:
 
