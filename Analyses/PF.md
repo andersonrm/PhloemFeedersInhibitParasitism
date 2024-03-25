@@ -1,14 +1,50 @@
 Phloem Feeding Insects Inhibit Caterpillar Parasitism
 ================
 Riley M. Anderson
-March 22, 2024
+March 25, 2024
 
 - [Overview](#overview)
+- [Recovery Rates:](#recovery-rates)
 - [Ants and Phloem-feeders:](#ants-and-phloem-feeders)
   - [GLMM approach](#glmm-approach)
+- [Alternative figure 2](#alternative-figure-2)
 - [Session Information](#session-information)
 
 # Overview
+
+# Recovery Rates:
+
+    ## 
+    ## Call:
+    ## glm(formula = n ~ pf_treatment + ant_treatment + year + site, 
+    ##     family = poisson(), data = recovery, contrasts = list(site = "contr.sum"))
+    ## 
+    ## Deviance Residuals: 
+    ##      Min        1Q    Median        3Q       Max  
+    ## -2.57071  -0.69178   0.03487   0.50439   2.72863  
+    ## 
+    ## Coefficients: (1 not defined because of singularities)
+    ##                       Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept)            1.95143    0.26684   7.313 2.61e-13 ***
+    ## pf_treatmentreplaced  -0.09531    0.15448  -0.617   0.5372    
+    ## ant_treatmentexcluded  0.16705    0.18321   0.912   0.3619    
+    ## year2020               0.34638    0.34413   1.007   0.3142    
+    ## year2021               0.04450    0.36186   0.123   0.9021    
+    ## year2022              -0.46536    0.24555  -1.895   0.0581 .  
+    ## site1                 -0.42795    0.23630  -1.811   0.0701 .  
+    ## site2                  0.38298    0.18080   2.118   0.0342 *  
+    ## site3                 -0.11266    0.17723  -0.636   0.5250    
+    ## site4                       NA         NA      NA       NA    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for poisson family taken to be 1)
+    ## 
+    ##     Null deviance: 65.208  on 25  degrees of freedom
+    ## Residual deviance: 37.121  on 17  degrees of freedom
+    ## AIC: 146.86
+    ## 
+    ## Number of Fisher Scoring iterations: 5
 
 # Ants and Phloem-feeders:
 
@@ -37,6 +73,10 @@ replacement in blue) and experimental ant treatment (ant access in
 circles, ant exclusion in triangles). Each point is a single
 caterpillar. Points are jittered for clarity. For detailed description
 of sites, tree replicates, and caterpillar sample sizes, see table S1.
+
+# Alternative figure 2
+
+![](PF_files/figure-gfm/fig2_2-1.png)<!-- -->
 
 # Session Information
 

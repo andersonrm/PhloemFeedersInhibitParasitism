@@ -30,7 +30,7 @@ knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 #  set default figure size to 6x8 at 300 dpi, and save a png and pdf
 knitr::opts_chunk$set(warning = F, message = F, collapse = T, cache = T,
     fig.height = 6, fig.width = 8, dpi = 300, # 6x8" @ 300dpi:1800x2400=4.3MP
-    dev = c('png', 'pdf', 'tiff'), dev.args = list(pdf = list(onefile = F)))
+    dev = c('png', 'pdf'), dev.args = list(pdf = list(onefile = F)))
 
 ```
 
@@ -206,6 +206,37 @@ plot_grid(p1, legend, ncol = 2,
 ```
 
 **Figure 2.** Caterpillar parasitism patterns across years (A) and sites (B) by experimental phloem-feeder manipulation (removal in orange, replacement in blue) and experimental ant treatment (ant access in circles, ant exclusion in triangles). Each point is a single caterpillar. Points are jittered for clarity. For detailed description of sites, tree replicates, and caterpillar sample sizes, see table S1.
+
+# Alternative figure 2
+```{r fig2_2, echo = F}
+
+dat2 <- dat1 %>% 
+  mutate(yearsite = factor(paste(year, site, sep = " ")),
+         pfant = factor(paste(pf_treatment, ant_treatment, sep = " "))) %>% 
+  select(yearsite, pfant, para) %>% 
+  group_by(yearsite, pfant, para) %>% 
+  tally() %>% 
+  pivot_wider(names_from = para,
+              values_from = n) %>% 
+  replace(is.na(.), 0) %>% 
+  rename(not_para = "0", para = "1")
+
+
+
+dat2 %>%
+  ggplot(aes(x = pfant,
+             y = para/(para + not_para),
+             color = yearsite)) +
+  geom_jitter(width = .3, height = 0.01, size = 3) +
+  theme_cowplot() +
+  labs(x = "", y = "Pr(Parasitism)", color = "Year/Site") +
+  scale_x_discrete(labels = c("pf removed\nant access",
+                              "pf removed\nant exclusion",
+                              "pf replaced\nant access",
+                              "pf replaced\nant exclusion"))
+
+```
+
 
 ```{r pf_glmm_Robi, echo = F}
 
