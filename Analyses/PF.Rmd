@@ -237,6 +237,50 @@ dat2 %>%
 
 ```
 
+```{r figure2_Robi}
+library(ggdist)
+
+nsim <- 100
+preddat <-  expand.grid(ant_treatment = c("access", "excluded"),
+                        pf_treatment = c("removed", "replaced"), 
+                        year = 2019)
+cis <- do.call("rbind", sapply(1:nsim, function(i, mod, newdat){
+  new_y <- simulate(mod)[,1]
+  mod_new <- refit(mod, new_y)
+  predict(mod_new, newdata = newdat, re.form=~0)
+}, mod = mod1.interaction, newdat = preddat, simplify=FALSE))
+
+pred_probs <- data.frame(
+  preddat,
+  prob = plogis(predict(mod1.interaction, newdata = preddat, re.form=~0)), 
+          t(plogis(apply(cis, 2, quantile, c(0.025, 0.975)))))
+names(pred_probs)[5:6] <- c("lower", "upper")
+
+pred_probs$xloc = as.numeric(pred_probs$pf_treatment)
+
+dat1 |> mutate(xloc = as.numeric(pf_treatment)  +
+                  (as.numeric(year) - 2.5)*0.05 + (as.numeric(site) - 3)*0.2) |> #runif(nrow(dat1), -0.1, 0.1))
+  ggplot() +
+  facet_wrap(~ant_treatment) +
+  geom_swarm(aes(x = xloc, y = para, side = as.factor(para), fill = year:site), 
+             dotsize = 1.5, colour = NA) +
+  geom_pointrange(data = pred_probs, aes(x = xloc, y = prob, ymin = lower, ymax = upper)) +
+  scale_side_mirrored(guide = "none") + 
+  scale_x_continuous(breaks=c(1, 2), labels =c("removed", "replaced")) +
+  scale_y_continuous(breaks = c(0, 1), 
+                     labels = c("Unparatisized", "Parasitized")) +
+  scale_shape_discrete() +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(x = "Treatment", y = NULL) +
+  theme_classic() + 
+  theme(strip.background = element_blank())
+        
+
+
+
+```
+
+
 
 ```{r pf_glmm_Robi, echo = F}
 
