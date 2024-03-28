@@ -127,7 +127,8 @@ apply(b1$t, 2, quantile, c(0.025, 0.975)) ## demonstrates the CIs don't cross 0.
 #                      family = binomial(),
 #                      contrasts = list(year = "contr.helmert"),
 #                      data = dat1)
-# summary(mod1.interaction_robust)
+# summary(mod1.interaction_robust) ## robust method - confirms the result, 
+# but without random effects
 
 # Likelihood ratio tests:
 mod2.additive.only <- update(mod1.interaction, ~ . -pf_treatment : ant_treatment)
