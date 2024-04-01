@@ -58,6 +58,8 @@ library(car)
 
 dat1 <- read.csv("data/data.19.20.21.22.csv")
 
+rec.data <- read.csv("data/recovery.csv")
+
 ####################################################
 #                    Functions                     #
 ####################################################
@@ -69,6 +71,43 @@ range01 <- function(x){
   (x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)-min(x, na.rm = TRUE))
   }
 
+
+# Function to check for overdispersion in poisson and binomial models:
+
+overdispersion_test <- function(model, type = "pearson"){
+    
+    # Get the pearson residuals
+    residuals <- resid(model, type = type)
+    
+    # Get the residual degrees of freedom of the model
+    df <- df.residual(model)
+    
+    # Sum of residual deviance
+    dev <- sum(residuals ^ 2)
+    
+    # Overdispersion = sum of squared residuals / residual degrees of freedom
+    ratio <- round(dev / df, 3)
+    
+    # P-value 
+    pvalue <- round(pchisq(dev, df, lower.tail = FALSE), 3)
+    
+    # Get the formula
+    f = paste(as.character(formula(model))[2:3], collapse = " ~ ")
+    
+    # Get the model name
+    name <- deparse(substitute(model))
+    cat("Overdispersion ratio for model:", name, "\nformula:", f, 
+        "\n\nAcceptable range: 1 - 1.4\nOverdispersion ratio:",
+        ratio, " df:", df, " p =", pvalue, "\n", 
+        ifelse(pvalue < 0.05, "Data are overdispersed\n", 
+        "Data are not overdispersed\n"))
+    
+    # Return all the parameters
+    return(c(ratio = ratio, deviance = dev, df = df, pvalue = pvalue))
+    
+}
+
+
 ```
 
 
@@ -79,7 +118,15 @@ range01 <- function(x){
 
 dat1 <- dat1 %>% 
   mutate(across(c(branchID : para), as.factor),
-         para = as.numeric(para) - 1)
+         para = as.numeric(para) - 1,
+         site = fct_recode(site, "PR" = "MS"))
+
+rec.data <- rec.data %>% 
+  mutate(across(c(year:ant_treatment), as.factor),
+         not_para = recovered - parasitized,
+         prop_para = parasitized/recovered,
+         prop_recovered = recovered/stocked)
+
 
 ```
 
@@ -87,16 +134,18 @@ dat1 <- dat1 %>%
 
 ```{r recovery, echo = F}
 
-recovery <- dat1 %>% 
-  group_by(year, site, pf_treatment, ant_treatment) %>% 
-  tally()
-
-
-rec.mod <- glm(n ~ pf_treatment + ant_treatment + year + site,
-               data = recovery, family = poisson(),
-               contrasts = list(site = "contr.sum"))
+rec.mod <- glm(prop_recovered ~ pf_treatment * ant_treatment +
+                 site + year,
+               family = quasibinomial(), # for overdispersion
+               data = filter(rec.data, prop_recovered <= 1),
+               # remove 1 record where recovery > stocked
+               weights = stocked,
+               contrasts = list(year = "contr.sum",
+                                site = "contr.sum"))
 
 summary(rec.mod)
+
+
 
 ```
 
@@ -113,14 +162,14 @@ summary(rec.mod)
                 # doesn't converge with data = dat1
 
 mod1.interaction <- glmmTMB(para ~ year + pf_treatment * ant_treatment +
-                       (1 | site) + (1 | cat_species), 
+                       site + (1 | cat_species), 
                      family = binomial(),
                      #contrasts = list(year = "contr.helmert"),
                      data = dat1)
 
 summary(mod1.interaction)
 b1 <- lme4::bootMer(mod1.interaction, FUN=function(x) fixef(x)$cond, nsim=100, 
-                    ncpus=16)
+                    ncpus=8)
 apply(b1$t, 2, quantile, c(0.025, 0.975)) ## demonstrates the CIs don't cross 0.
 
 # mod1.interaction_robust <- brglm::brglm(para ~ year + pf_treatment * ant_treatment,
@@ -137,13 +186,23 @@ mod3.pf.only <- update(mod2.additive.only, ~ . -ant_treatment)
 
 mod4.no.pf <- update(mod3.pf.only, ~ . -pf_treatment)
 
+mod5.no.year <- update(mod4.no.pf, ~ . -year)
+
+mod6.no.site <- update(mod5.no.year, ~ . -site)
+
 results <- as_tibble(anova(mod1.interaction,
                            mod2.additive.only,
-                           mod3.pf.only, mod4.no.pf,
+                           mod3.pf.only,
+                           mod4.no.pf,
+                           mod5.no.year,
+                           mod6.no.site,
                            test = "LRT"),
                      rownames = "LRT_models")
 
-lrt.names <- c("Null model", "Phloem-feeders",
+lrt.names <- c("Null model",
+               "Site",
+               "Year + Site",
+               "Phloem-feeders",
                "Phloem-feeders + Ants",
                "Phloem-feeders x Ants")
 
@@ -156,8 +215,107 @@ kable(results, format = "markdown", digits = 3)
 
 ```
 
+# Figure 2:
+
+## proportion recovered-all years
+```{r Figure_2_prop, echo = F}
+
+n_cats_treatment <- dat1 %>% 
+  group_by(pf_treatment, ant_treatment) %>% 
+  tally() %>% 
+  rename(ncats = n)
+
+fig2data <- dat1 %>% 
+  mutate(para = factor(para)) %>% 
+  group_by(pf_treatment, ant_treatment, para) %>% 
+  tally() %>% 
+  left_join(., n_cats_treatment,
+            by = c("pf_treatment", "ant_treatment")) %>% 
+  mutate(ant_treatment = case_when(
+    ant_treatment == "access" ~ "Ant access",
+    TRUE ~ "Ant exclusion"
+  ))
+
+fig2labels <- fig2data %>% 
+  filter(para == "1") %>% 
+  mutate(prop = round(100 * (n / ncats), 1),
+    label = paste0(prop, "%", sep = ""))
+
+fig2_prop <- fig2data %>%
+  ggplot(aes(x = pf_treatment, y = n/ncats, fill = para)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ ant_treatment) +
+  geom_text(data = fig2labels,
+            label = fig2labels$label,
+            nudge_y = -0.08) +
+  labs(x = "Phloem-feeder treatment",
+       y = "Prop. of caterpillars\nrecovered",
+       fill = "") +
+  scale_fill_manual(values = c("#56B4E9", "#D55E00"),
+                    labels = c("unparasitized", "parasitized")) +
+  theme_cowplot() +
+  theme(legend.title.align = 0.5,
+        strip.background = element_blank()) 
+
+fig2_prop
+
+```
+
+
+
+## counts all years
+
+```{r Figure_2_allyears, echo = F}
+
+dat1 %>% 
+  mutate(ant_treatment = case_when(
+    ant_treatment == "access" ~ "Ant access",
+    TRUE ~ "Ant exclusion"
+  ),
+  para = factor(para)) %>% 
+  group_by(pf_treatment, ant_treatment, para) %>% 
+  tally() %>% 
+  ggplot(aes(x = pf_treatment, y = n, fill = para)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ ant_treatment) +
+  scale_fill_manual(values = c("#56B4E9", "#D55E00"),
+                    labels = c("unparasitized",
+                               "parasitized")) +
+  theme_cowplot() +
+  theme(legend.title.align = 0.5,
+        strip.background = element_blank(),
+        legend) +
+  labs(x = "Phloem feeder treatment",
+       y = "Caterpillar count",
+       fill = "")
+```
+
+
+## all years no ant effects
+
+```{r Figure_2_no_ants, echo = F}
+
+dat1 %>% 
+  mutate(para = factor(para)) %>% 
+  group_by(pf_treatment, para) %>% 
+  tally() %>% 
+  ggplot(aes(x = pf_treatment, y = n, fill = para)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("#56B4E9", "#D55E00"),
+                    labels = c("unparasitized",
+                               "parasitized")) +
+  theme_cowplot() +
+  labs(x = "Phloem feeder treatment",
+       y = "Caterpillar count",
+       fill = "")
+
+
+```
+
+
+
 ```{r new_pf_figure2, echo = F, fig.width = 10}
-library(ggpattern)
+
 
 Atest <- dat1 %>% 
   mutate(para = factor(para)) %>% 
@@ -198,7 +356,7 @@ B <- dat1 %>%
   scale_color_manual(values = c("#D57E00", "#56B4E9")) +
   scale_y_discrete(labels = c("not parasitized", "parasitized"),
                    expand = c(0.15, .3)) +
-  scale_x_discrete(labels = c(" CK ", " CP ", " GH ", " MS ",  " PR ")) +
+  scale_x_discrete(labels = c(" CK ", " CP ", " GH ",  " PR ")) +
   labs(x = "Site", y = "",
        color = "Phloem-feeders",
        shape = "Ants") +
@@ -211,11 +369,14 @@ grobs <- ggplotGrob(Atest)$grobs
 
 legend <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
 
-p1 <- plot_grid(A, NULL, B, labels = c("A", "", "B"),
+
+
+
+p1 <- cowplot::plot_grid(A, NULL, B, labels = c("A", "", "B"),
           ncol = 1, nrow = 3, rel_heights = c(1, -0.2, 1),
           greedy = T)
 
-plot_grid(p1, legend, ncol = 2,
+cowplot::plot_grid(p1, legend, ncol = 2,
           rel_widths = c(.45, 0.1),
           rel_heights = c(4, 4))
 
@@ -254,48 +415,82 @@ dat2 %>%
 ```
 
 ```{r figure2_Robi}
-library(ggdist)
-
-nsim <- 100
-preddat <-  expand.grid(ant_treatment = c("access", "excluded"),
-                        pf_treatment = c("removed", "replaced"), 
-                        year = 2019)
-cis <- do.call("rbind", sapply(1:nsim, function(i, mod, newdat){
-  new_y <- simulate(mod)[,1]
-  mod_new <- refit(mod, new_y)
-  predict(mod_new, newdata = newdat, re.form=~0)
-}, mod = mod1.interaction, newdat = preddat, simplify=FALSE))
-
-pred_probs <- data.frame(
-  preddat,
-  prob = plogis(predict(mod1.interaction, newdata = preddat, re.form=~0)), 
-          t(plogis(apply(cis, 2, quantile, c(0.025, 0.975)))))
-names(pred_probs)[5:6] <- c("lower", "upper")
-
-pred_probs$xloc = as.numeric(pred_probs$pf_treatment)
-
-dat1 |> mutate(xloc = as.numeric(pf_treatment)  +
-                  (as.numeric(year) - 2.5)*0.05 + (as.numeric(site) - 3)*0.2) |> #runif(nrow(dat1), -0.1, 0.1))
-  ggplot() +
-  facet_wrap(~ant_treatment) +
-  geom_swarm(aes(x = xloc, y = para, side = as.factor(para), fill = year:site), 
-             dotsize = 1.5, colour = NA) +
-  geom_pointrange(data = pred_probs, aes(x = xloc, y = prob, ymin = lower, ymax = upper)) +
-  scale_side_mirrored(guide = "none") + 
-  scale_x_continuous(breaks=c(1, 2), labels =c("removed", "replaced")) +
-  scale_y_continuous(breaks = c(0, 1), 
-                     labels = c("Unparatisized", "Parasitized")) +
-  scale_shape_discrete() +
-  coord_cartesian(ylim = c(0, 1)) +
-  labs(x = "Treatment", y = NULL) +
-  theme_classic() + 
-  theme(strip.background = element_blank())
-        
+# library(ggdist)
+# 
+# nsim <- 100
+# preddat <-  expand.grid(ant_treatment = c("access", "excluded"),
+#                         pf_treatment = c("removed", "replaced"), 
+#                         year = 2019)
+# cis <- do.call("rbind", sapply(1:nsim, function(i, mod, newdat){
+#   new_y <- simulate(mod)[,1]
+#   mod_new <- refit(mod, new_y)
+#   predict(mod_new, newdata = newdat, re.form=~0)
+# }, mod = mod1.interaction, newdat = preddat, simplify=FALSE))
+# 
+# pred_probs <- data.frame(
+#   preddat,
+#   prob = plogis(predict(mod1.interaction, newdata = preddat, re.form=~0)), 
+#           t(plogis(apply(cis, 2, quantile, c(0.025, 0.975)))))
+# names(pred_probs)[5:6] <- c("lower", "upper")
+# 
+# pred_probs$xloc = as.numeric(pred_probs$pf_treatment)
+# 
+# dat1 |> mutate(xloc = as.numeric(pf_treatment)  +
+#                   (as.numeric(year) - 2.5)*0.05 + (as.numeric(site) - 3)*0.2) |> #runif(nrow(dat1), -0.1, 0.1))
+#   ggplot() +
+#   facet_wrap(~ant_treatment) +
+#   geom_swarm(aes(x = xloc, y = para, side = as.factor(para), fill = year:site), 
+#              dotsize = 1.5, colour = NA) +
+#   geom_pointrange(data = pred_probs, aes(x = xloc, y = prob, ymin = lower, ymax = upper)) +
+#   scale_side_mirrored(guide = "none") + 
+#   scale_x_continuous(breaks=c(1, 2), labels =c("removed", "replaced")) +
+#   scale_y_continuous(breaks = c(0, 1), 
+#                      labels = c("Unparatisized", "Parasitized")) +
+#   scale_shape_discrete() +
+#   coord_cartesian(ylim = c(0, 1)) +
+#   labs(x = "Treatment", y = NULL) +
+#   theme_classic() + 
+#   theme(strip.background = element_blank())
+#         
 
 
 
 ```
 
+# Supplemental table
+```{r supp_table, echo = F}
+
+rec.year <- rec.data %>% 
+  select(-not_para, -prop_para, -prop_recovered) %>% 
+  mutate(pfant = factor(paste(pf_treatment, ant_treatment, sep = "_"))) %>% 
+  select(-pf_treatment, -ant_treatment, -site) %>% 
+  group_by(year, pfant) %>%
+  summarise(stocked = sum(stocked),
+            recovered = sum(recovered),
+            parasitized = sum(parasitized)) %>% 
+  pivot_wider(names_from = pfant,
+              values_from = c(stocked, recovered, parasitized))
+
+
+
+rec.site <- rec.data %>% 
+  select(-not_para, -prop_para, -prop_recovered) %>% 
+  mutate(pfant = factor(paste(pf_treatment, ant_treatment, sep = "_"))) %>% 
+  select(-pf_treatment, -ant_treatment, -year) %>% 
+  group_by(site, pfant) %>%
+  summarise(stocked = sum(stocked),
+            recovered = sum(recovered),
+            parasitized = sum(parasitized)) %>% 
+  pivot_wider(names_from = pfant,
+              values_from = c(stocked, recovered, parasitized))
+
+rec.year.site <- bind_rows(rec.year, rec.site)
+
+write.csv(rec.year.site,
+          file = "data/recover.year.site.csv",
+          row.names = F)
+
+```
 
 
 ```{r pf_glmm_Robi, echo = F}
