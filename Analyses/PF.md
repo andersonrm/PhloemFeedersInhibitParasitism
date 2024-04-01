@@ -1,13 +1,18 @@
 Phloem Feeding Insects Inhibit Caterpillar Parasitism
 ================
 Riley M. Anderson
-March 25, 2024
+April 01, 2024
 
 - [Overview](#overview)
 - [Recovery Rates:](#recovery-rates)
 - [Ants and Phloem-feeders:](#ants-and-phloem-feeders)
   - [GLMM approach](#glmm-approach)
+- [Figure 2:](#figure-2)
+  - [proportion recovered-all years](#proportion-recovered-all-years)
+  - [counts all years](#counts-all-years)
+  - [all years no ant effects](#all-years-no-ant-effects)
 - [Alternative figure 2](#alternative-figure-2)
+- [Supplemental table](#supplemental-table)
 - [Session Information](#session-information)
 
 # Overview
@@ -16,54 +21,132 @@ March 25, 2024
 
     ## 
     ## Call:
-    ## glm(formula = n ~ pf_treatment + ant_treatment + year + site, 
-    ##     family = poisson(), data = recovery, contrasts = list(site = "contr.sum"))
+    ## glm(formula = prop_recovered ~ pf_treatment * ant_treatment + 
+    ##     site + year, family = quasibinomial(), data = filter(rec.data, 
+    ##     prop_recovered <= 1), weights = stocked, contrasts = list(year = "contr.sum", 
+    ##     site = "contr.sum"))
     ## 
     ## Deviance Residuals: 
-    ##      Min        1Q    Median        3Q       Max  
-    ## -2.57071  -0.69178   0.03487   0.50439   2.72863  
+    ##     Min       1Q   Median       3Q      Max  
+    ## -3.2772  -0.8401   0.0109   0.7865   2.2651  
     ## 
-    ## Coefficients: (1 not defined because of singularities)
-    ##                       Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)            1.95143    0.26684   7.313 2.61e-13 ***
-    ## pf_treatmentreplaced  -0.09531    0.15448  -0.617   0.5372    
-    ## ant_treatmentexcluded  0.16705    0.18321   0.912   0.3619    
-    ## year2020               0.34638    0.34413   1.007   0.3142    
-    ## year2021               0.04450    0.36186   0.123   0.9021    
-    ## year2022              -0.46536    0.24555  -1.895   0.0581 .  
-    ## site1                 -0.42795    0.23630  -1.811   0.0701 .  
-    ## site2                  0.38298    0.18080   2.118   0.0342 *  
-    ## site3                 -0.11266    0.17723  -0.636   0.5250    
-    ## site4                       NA         NA      NA       NA    
+    ## Coefficients:
+    ##                                            Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)                                 0.15409    0.39580   0.389   0.7025
+    ## pf_treatmentreplaced                       -0.06671    0.43921  -0.152   0.8813
+    ## ant_treatmentexcluded                       0.59706    0.56068   1.065   0.3038
+    ## site1                                       0.62766    0.72485   0.866   0.4002
+    ## site2                                       0.24683    0.50913   0.485   0.6348
+    ## site3                                      -0.50253    0.52665  -0.954   0.3551
+    ## year1                                      -1.09301    0.54521  -2.005   0.0634
+    ## year2                                      -0.17174    0.49226  -0.349   0.7320
+    ## year3                                       0.88507    0.47112   1.879   0.0799
+    ## pf_treatmentreplaced:ant_treatmentexcluded -1.13322    0.77472  -1.463   0.1642
+    ##                                             
+    ## (Intercept)                                 
+    ## pf_treatmentreplaced                        
+    ## ant_treatmentexcluded                       
+    ## site1                                       
+    ## site2                                       
+    ## site3                                       
+    ## year1                                      .
+    ## year2                                       
+    ## year3                                      .
+    ## pf_treatmentreplaced:ant_treatmentexcluded  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## (Dispersion parameter for poisson family taken to be 1)
+    ## (Dispersion parameter for quasibinomial family taken to be 2.345885)
     ## 
-    ##     Null deviance: 65.208  on 25  degrees of freedom
-    ## Residual deviance: 37.121  on 17  degrees of freedom
-    ## AIC: 146.86
+    ##     Null deviance: 74.749  on 24  degrees of freedom
+    ## Residual deviance: 36.971  on 15  degrees of freedom
+    ## AIC: NA
     ## 
-    ## Number of Fisher Scoring iterations: 5
+    ## Number of Fisher Scoring iterations: 4
 
 # Ants and Phloem-feeders:
 
 ## GLMM approach
 
-    ## # A tibble: 4 × 9
-    ##   LRT_models         Df   AIC   BIC logLik deviance  Chisq `Chi Df` `Pr(>Chisq)`
-    ##   <chr>           <dbl> <dbl> <dbl>  <dbl>    <dbl>  <dbl>    <dbl>        <dbl>
-    ## 1 Null model          4  96.2 107.   -44.1     88.2 NA           NA   NA        
-    ## 2 Phloem-feeders      5  80.4  94.4  -35.2     70.4 17.8          1    0.0000245
-    ## 3 Phloem-feeders…     6  81.8  98.6  -34.9     69.8  0.603        1    0.437    
-    ## 4 Phloem-feeders…     7  83.8 103.   -34.9     69.8  0            1    1
+    ##  Family: binomial  ( logit )
+    ## Formula:          
+    ## para ~ year + pf_treatment * ant_treatment + site + (1 | cat_species)
+    ## Data: dat1
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##    103.3    137.6    -40.6     81.3      157 
+    ## 
+    ## Random effects:
+    ## 
+    ## Conditional model:
+    ##  Groups      Name        Variance Std.Dev.
+    ##  cat_species (Intercept) 0.07688  0.2773  
+    ## Number of obs: 168, groups:  cat_species, 28
+    ## 
+    ## Conditional model:
+    ##                                              Estimate Std. Error z value
+    ## (Intercept)                                   -0.7938     1.4782  -0.537
+    ## year2020                                       0.1503     1.8825   0.080
+    ## year2021                                      -0.6907     1.6592  -0.416
+    ## year2022                                      -0.2480     0.7967  -0.311
+    ## pf_treatmentreplaced                         -20.7424  9267.8548  -0.002
+    ## ant_treatmentexcluded                         -0.6315     0.6330  -0.998
+    ## siteCP                                         0.1253     1.3520   0.093
+    ## siteGH                                         0.3096     1.4695   0.211
+    ## sitePR                                        -1.4217     1.8651  -0.762
+    ## pf_treatmentreplaced:ant_treatmentexcluded    -1.6514 30066.3130   0.000
+    ##                                            Pr(>|z|)
+    ## (Intercept)                                   0.591
+    ## year2020                                      0.936
+    ## year2021                                      0.677
+    ## year2022                                      0.756
+    ## pf_treatmentreplaced                          0.998
+    ## ant_treatmentexcluded                         0.318
+    ## siteCP                                        0.926
+    ## siteGH                                        0.833
+    ## sitePR                                        0.446
+    ## pf_treatmentreplaced:ant_treatmentexcluded    1.000
+    ##       (Intercept)  year2020   year2021  year2022 pf_treatmentreplaced
+    ## 2.5%   -27.666800 -27.65523 -43.284013 -2.233764            -56.79096
+    ## 97.5%    2.449328  29.03954   2.463218  1.179540            -21.68730
+    ##       ant_treatmentexcluded    siteCP    siteGH    sitePR
+    ## 2.5%             -1.9966494 -2.342351 -2.588378 -49.87631
+    ## 97.5%             0.8026976 26.048573 27.214666  20.36620
+    ##       pf_treatmentreplaced:ant_treatmentexcluded
+    ## 2.5%                                  -11.551278
+    ## 97.5%                                   1.843775
+    ## # A tibble: 6 × 9
+    ##   LRT_models          Df   AIC   BIC logLik deviance Chisq `Chi Df` `Pr(>Chisq)`
+    ##   <chr>            <dbl> <dbl> <dbl>  <dbl>    <dbl> <dbl>    <dbl>        <dbl>
+    ## 1 Null model           2  114.  120.  -54.9    110.  NA          NA  NA         
+    ## 2 Site                 5  114.  130.  -52.2    104.   5.45        3   0.142     
+    ## 3 Year + Site          8  119.  144.  -51.7    103.   1.01        3   0.800     
+    ## 4 Phloem-feeders       9  100.  128.  -41.1     82.3 21.1         1   0.00000440
+    ## 5 Phloem-feeders …    10  101.  133.  -40.6     81.3  1.03        1   0.311     
+    ## 6 Phloem-feeders …    11  103.  138.  -40.6     81.3  0           1   1
 
-| LRT_models            |  Df |    AIC |     BIC |  logLik | deviance |  Chisq | Chi Df | Pr(\>Chisq) |
-|:----------------------|----:|-------:|--------:|--------:|---------:|-------:|-------:|------------:|
-| Null model            |   4 | 96.232 | 107.382 | -44.116 |   88.232 |     NA |     NA |          NA |
-| Phloem-feeders        |   5 | 80.432 |  94.369 | -35.216 |   70.432 | 17.800 |      1 |       0.000 |
-| Phloem-feeders + Ants |   6 | 81.828 |  98.553 | -34.914 |   69.828 |  0.603 |      1 |       0.437 |
-| Phloem-feeders x Ants |   7 | 83.828 | 103.341 | -34.914 |   69.828 |  0.000 |      1 |       1.000 |
+| LRT_models            |  Df |     AIC |     BIC |  logLik | deviance |  Chisq | Chi Df | Pr(\>Chisq) |
+|:----------------------|----:|--------:|--------:|--------:|---------:|-------:|-------:|------------:|
+| Null model            |   2 | 113.829 | 120.077 | -54.914 |  109.829 |     NA |     NA |          NA |
+| Site                  |   5 | 114.381 | 130.001 | -52.191 |  104.381 |  5.448 |      3 |       0.142 |
+| Year + Site           |   8 | 119.376 | 144.368 | -51.688 |  103.376 |  1.005 |      3 |       0.800 |
+| Phloem-feeders        |   9 | 100.295 | 128.410 | -41.147 |   82.295 | 21.081 |      1 |       0.000 |
+| Phloem-feeders + Ants |  10 | 101.268 | 132.508 | -40.634 |   81.268 |  1.027 |      1 |       0.311 |
+| Phloem-feeders x Ants |  11 | 103.268 | 137.631 | -40.634 |   81.268 |  0.000 |      1 |       1.000 |
+
+# Figure 2:
+
+## proportion recovered-all years
+
+![](PF_files/figure-gfm/Figure_2_prop-1.png)<!-- -->
+
+## counts all years
+
+![](PF_files/figure-gfm/Figure_2_allyears-1.png)<!-- -->
+
+## all years no ant effects
+
+![](PF_files/figure-gfm/Figure_2_no_ants-1.png)<!-- -->
 
 ![](PF_files/figure-gfm/new_pf_figure2-1.png)<!-- -->
 
@@ -77,6 +160,48 @@ of sites, tree replicates, and caterpillar sample sizes, see table S1.
 # Alternative figure 2
 
 ![](PF_files/figure-gfm/fig2_2-1.png)<!-- -->
+
+``` r
+# library(ggdist)
+# 
+# nsim <- 100
+# preddat <-  expand.grid(ant_treatment = c("access", "excluded"),
+#                         pf_treatment = c("removed", "replaced"), 
+#                         year = 2019)
+# cis <- do.call("rbind", sapply(1:nsim, function(i, mod, newdat){
+#   new_y <- simulate(mod)[,1]
+#   mod_new <- refit(mod, new_y)
+#   predict(mod_new, newdata = newdat, re.form=~0)
+# }, mod = mod1.interaction, newdat = preddat, simplify=FALSE))
+# 
+# pred_probs <- data.frame(
+#   preddat,
+#   prob = plogis(predict(mod1.interaction, newdata = preddat, re.form=~0)), 
+#           t(plogis(apply(cis, 2, quantile, c(0.025, 0.975)))))
+# names(pred_probs)[5:6] <- c("lower", "upper")
+# 
+# pred_probs$xloc = as.numeric(pred_probs$pf_treatment)
+# 
+# dat1 |> mutate(xloc = as.numeric(pf_treatment)  +
+#                   (as.numeric(year) - 2.5)*0.05 + (as.numeric(site) - 3)*0.2) |> #runif(nrow(dat1), -0.1, 0.1))
+#   ggplot() +
+#   facet_wrap(~ant_treatment) +
+#   geom_swarm(aes(x = xloc, y = para, side = as.factor(para), fill = year:site), 
+#              dotsize = 1.5, colour = NA) +
+#   geom_pointrange(data = pred_probs, aes(x = xloc, y = prob, ymin = lower, ymax = upper)) +
+#   scale_side_mirrored(guide = "none") + 
+#   scale_x_continuous(breaks=c(1, 2), labels =c("removed", "replaced")) +
+#   scale_y_continuous(breaks = c(0, 1), 
+#                      labels = c("Unparatisized", "Parasitized")) +
+#   scale_shape_discrete() +
+#   coord_cartesian(ylim = c(0, 1)) +
+#   labs(x = "Treatment", y = NULL) +
+#   theme_classic() + 
+#   theme(strip.background = element_blank())
+#         
+```
+
+# Supplemental table
 
 # Session Information
 
