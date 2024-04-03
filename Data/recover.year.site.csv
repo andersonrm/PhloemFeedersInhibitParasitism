@@ -1,0 +1,9 @@
+"year","stocked_removed_access","stocked_removed_excluded","stocked_replaced_access","stocked_replaced_excluded","recovered_removed_access","recovered_removed_excluded","recovered_replaced_access","recovered_replaced_excluded","parasitized_removed_access","parasitized_removed_excluded","parasitized_replaced_access","parasitized_replaced_excluded","site"
+"2019",32,32,32,32,12,19,7,5,4,4,0,0,NA
+"2020",24,NA,24,NA,9,NA,10,NA,1,NA,0,NA,NA
+"2021",22,NA,23,NA,13,NA,16,NA,2,NA,0,NA,NA
+"2022",28,28,28,28,18,17,18,24,3,3,0,0,NA
+NA,4,4,4,4,3,2,3,4,1,0,0,0,"CK"
+NA,42,42,42,42,18,27,13,12,5,6,0,0,"CP"
+NA,12,NA,13,NA,6,NA,6,NA,2,NA,0,NA,"GH"
+NA,48,NA,48,NA,25,NA,29,NA,2,NA,0,NA,"PR"
