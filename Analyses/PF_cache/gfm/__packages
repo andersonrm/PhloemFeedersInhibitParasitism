@@ -17,3 +17,7 @@ glmmTMB
 carData
 car
 ggpattern
+permute
+lattice
+vegan
+broom

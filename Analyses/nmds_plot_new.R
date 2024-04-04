@@ -23,10 +23,14 @@ veganCovEllipse<-function (cov, center = c(0, 0), scale = 1, npoints = 100)
 ############################
 
 summary(chem)
-chem <- mutate(chem,
-               treatment.1 = ifelse(treatment.1 == "minus", "removed", "replaced"))
+chem <- chem %>% 
+  mutate(treatment.1 = ifelse(treatment.1 == "minus",
+                              "removed", "replaced"))
+
+
 # Perform NMDS with "treatment" as the grouping variable
 nmds <- metaMDS(chem[, 5:37], distance = "bray", k = 2)
+
 
 
 
@@ -38,11 +42,12 @@ nmds_data <- data.frame(nmds$points, treatment = chem$treatment,
                         row.names = "sites")
 
 # Calculate centroid for each treatment
-centroids <- nmds_data |> group_by(exclusion, taxon, treatment) |> 
+centroids <- nmds_data %>% 
+  group_by(exclusion, taxon, treatment) %>%  
   summarize(MDS1 = mean(MDS1), MDS2 = mean(MDS2))
 
 # Generate NMDS plot with color coding for treatments and connecting lines
- plot_nmds <- ggplot(nmds_data, aes(x = MDS1, y = MDS2, 
+plot_nmds <- ggplot(nmds_data, aes(x = MDS1, y = MDS2, 
                                     colour = taxon , shape = exclusion)) +
   geom_point(size = 2, show.legend=FALSE) +
   geom_point(data = centroids, size = 4) +
@@ -86,13 +91,17 @@ for(g in levels(nmdsmeta$group)){
                   cbind(
                     as.data.frame(with(
                       nmdsmeta[nmdsmeta$group==g,],
-                      veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale)))
+                      veganCovEllipse(ord[[g]]$cov,
+                                      ord[[g]]$center,
+                                      ord[[g]]$scale)))
                                 ,group=g))
 }
 
 df_ell <- df_ell %>% 
-  mutate(exclusion = if_else(grepl("replaced", group), "replaced", "removed"),
-         taxon = if_else(grepl("membracid", group), "membracid", "coccid"))
+  mutate(exclusion = factor(if_else(grepl("replaced", group),
+                             "replaced", "removed")),
+         taxon = factor(if_else(grepl("membracid", group),
+                         "membracid", "coccid")))
 
 nmds_data <- nmds_data %>% 
   separate_wider_delim(treatment, delim = "_",
@@ -124,12 +133,40 @@ ell.fig.color <- ggplot(nmds_data, aes(x = MDS1, y = MDS2,
                aes(x = NMDS1, y = NMDS2, fill = taxon), 
                alpha = 0.3, color = NA,
                show.legend = F) +
-  labs(x = "NMDS1", y = "NMDS2", shape = "Treatment", color = "Taxon") +
+  labs(x = "NMDS1", y = "NMDS2",
+       shape = "Treatment",
+       color = "Taxon",
+       fill = "Taxon") +
   scale_shape_manual(values=c(1, 16)) +
   # scale_color_discrete(guide = "none") +
   theme_classic(base_size = 15) +
   scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
   scale_color_manual(values = c("#D55E00", "#56B4E9"))
+
+
+
+ggplot(nmds_data, aes(x = MDS1, y = MDS2, 
+                      color = taxon,
+                      shape = exclusion)) +
+  geom_point(data = nmds_data, size = 1) +
+  geom_point(data = centroids, aes(shape = exclusion),
+             size = 4) +
+  geom_polygon(data = df_ell,
+               aes(x = NMDS1, y = NMDS2,
+                   color = taxon, linetype = exclusion), 
+               alpha = 0.3, fill = NA,
+               show.legend = F) +
+  labs(x = "NMDS1", y = "NMDS2",
+       shape = "Treatment",
+       color = "Taxon") +
+  scale_shape_manual(values=c(1, 16)) +
+  theme_cowplot() +
+  scale_color_manual(values = c("#D55E00", "#56B4E9")) +
+  #guides(shape = guide_legend(override.aes = list(size = 3))) +
+  scale_linetype_manual(values = c("dashed", "solid"))
+
+
+
 
 ######
 # print the fig
