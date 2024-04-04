@@ -301,13 +301,16 @@ dat1 %>%
   scale_fill_manual(values = c("#56B4E9", "#D55E00"),
                     labels = c("unparasitized",
                                "parasitized")) +
-  theme_cowplot() +
+  theme_cowplot(font_size = 14) +
   theme(legend.title.align = 0.5,
         strip.background = element_blank(),
         legend) +
   labs(x = "Phloem feeder treatment",
        y = "Caterpillar count",
-       fill = "")
+       fill = "") +
+  geom_text(data = fig2labels,
+            label = fig2labels$label,
+            nudge_y = -1.5)
 ```
 
 
@@ -588,6 +591,11 @@ df_ell <- df_ell %>%
 nmds_data <- nmds_data %>% 
   separate_wider_delim(treatment, delim = "_",
                        names = c("exclusion", "taxon"))
+
+cent.labels <- centroids %>% 
+  ungroup() %>% 
+  mutate(letter = c("a", "a", "ab", "b"))
+
 ```
 
 ## Volatile Plot
@@ -596,7 +604,7 @@ nmds_data <- nmds_data %>%
 ggplot(nmds_data, aes(x = MDS1, y = MDS2, 
                       color = taxon,
                       shape = exclusion)) +
-  geom_point(data = nmds_data, size = 1) +
+  geom_point(data = nmds_data, size = 1, show.legend = F) +
   geom_point(data = centroids, aes(shape = exclusion),
              size = 4) +
   geom_polygon(data = df_ell,
@@ -608,10 +616,14 @@ ggplot(nmds_data, aes(x = MDS1, y = MDS2,
        shape = "Treatment",
        color = "Taxon") +
   scale_shape_manual(values=c(1, 16)) +
-  theme_cowplot() +
+  theme_cowplot(font_size = 16) +
   scale_color_manual(values = c("#D55E00", "#56B4E9")) +
   #guides(shape = guide_legend(override.aes = list(size = 3))) +
-  scale_linetype_manual(values = c("dashed", "solid"))
+  scale_linetype_manual(values = c("dashed", "solid")) +
+  geom_text(data = cent.labels,
+            label = cent.labels$letter,
+            nudge_y = 0.06, nudge_x = -0.06,
+            color = 'black')
 
 ```
 
