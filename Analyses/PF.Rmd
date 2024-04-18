@@ -169,6 +169,8 @@ rec.mod <- glm(prop_recovered ~ pf_treatment * ant_treatment +
 
 kable(tidy(rec.mod), format = "markdown", digits = 3)
 
+
+
 ```
 
 # Ants and Phloem-feeders:
@@ -232,6 +234,8 @@ results <- results %>%
   mutate(LRT_models = lrt.names)
 
 kable(results, format = "markdown", digits = 3)
+
+
 
 ```
 
