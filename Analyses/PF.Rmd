@@ -48,7 +48,7 @@ library(knitr)
 library(forcats)
 library(glmmTMB)
 library(vegan)
-library(broom)
+library(tidymodels)
 
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # @@@@@ Data Preparation
