@@ -121,6 +121,10 @@ veganCovEllipse<-function (cov, center = c(0, 0), scale = 1, npoints = 100)
   t(center + scale * t(Circle %*% chol(cov)))
 }
 
+###########
+# Seed
+set.seed(321)
+
 ```
 
 
@@ -152,7 +156,85 @@ chem <- chem %>%
 
 ```
 
-# Recovery Rates:
+
+## Branch level model for parasitism
+
+```{r branch_level_mods, echo = F}
+
+branch <- dat1 %>% 
+  group_by(branchID, year, site, pf_treatment, ant_treatment, para) %>% 
+  tally() %>% 
+  mutate(not_para = n - para,
+         prop.parasitism = para/n)
+
+branch.mod <- glm(prop.parasitism ~ pf_treatment * ant_treatment +
+                    year + site, family = binomial(), data = branch,
+                  weights = n)
+
+# overdispersion_test(branch.mod)
+
+anova(branch.mod)
+
+# get bootstrapped models to generate CIs
+
+boots <- bootstraps(branch, times = 2000, apparent = T)
+
+# function to fit glm
+fit_glm_bootstrap <- function(split) {
+  glm(prop.parasitism ~ pf_treatment * ant_treatment + year + site,
+      family = binomial(),
+      weights = n,
+  analysis(split))
+}
+
+# this creates a nested data frame where each value in 'model' is a bootstrap
+# iteration of the GLM
+
+boot_models <- # this takes a minute or two.
+  boots %>% 
+  mutate(model = map(splits, fit_glm_bootstrap),
+         coef_info = map(model, tidy))
+
+# unnest the coefficients from each bootstrap
+boot_coefs <- 
+  boot_models %>% 
+  unnest(coef_info)
+
+# calculate percentile based CIs
+percentile_intervals <- int_pctl(boot_models, coef_info)
+
+# plot the bootstraps for each variable
+ggplot(boot_coefs, aes(estimate)) +
+  geom_histogram(bins = 30) +
+  facet_wrap( ~ term, scales = "free") +
+  geom_vline(aes(xintercept = .lower),
+             data = percentile_intervals, col = "blue") +
+  geom_vline(aes(xintercept = .upper),
+             data = percentile_intervals, col = "blue") +
+  theme_cowplot()
+
+
+```
+
+```{r branch_results, echo = F}
+
+branchCIs <- percentile_intervals %>% 
+  rename(Model_term = term,
+         LCL = .lower,
+         Estimate = .estimate,
+         UCL = .upper,
+         Alpha = .alpha) %>% 
+  select(-.method)
+
+write.csv(branchCIs,
+          file = "data/branch_level_results.csv",
+          row.names = F, quote = F)
+
+kable(branchCIs, format = "markdown", digits = 2)
+
+```
+
+## Recovery rates of stocked caterpillars
 
 ```{r recovery, echo = F}
 
@@ -173,9 +255,9 @@ kable(tidy(rec.mod), format = "markdown", digits = 3)
 
 ```
 
-# Ants and Phloem-feeders:
+## Ants and Phloem-feeders:
 
-## GLMM approach
+### GLMM approach
 ```{r pf_ant_glmm, echo = F}
 
 # mod1.interaction <- glmmTMB(para ~ pf_treatment * ant_treatment +
@@ -239,9 +321,9 @@ kable(results, format = "markdown", digits = 3)
 
 ```
 
-# Figure 2:
+## Figure 2:
 
-## proportion recovered-all years
+### proportion recovered-all years
 ```{r Figure_2_prop, echo = F}
 
 n_cats_treatment <- dat1 %>% 
@@ -287,7 +369,7 @@ fig2_prop
 
 
 
-## counts all years
+### counts all years
 
 ```{r Figure_2_allyears, echo = F}
 
@@ -318,7 +400,7 @@ dat1 %>%
 ```
 
 
-## all years no ant effects
+### all years no ant effects
 
 ```{r Figure_2_no_ants, echo = F}
 
@@ -455,7 +537,7 @@ cowplot::plot_grid(p1, legend, ncol = 2,
 
 ```
 
-# Supplemental table
+## Supplemental table
 ```{r supp_table, echo = F}
 
 rec.year <- rec.data %>% 
@@ -534,7 +616,7 @@ write.csv(rec.year.site,
 # anova(pf.mod, pf.mod0, test = "LRT")
 ```
 
-# Volatiles
+## Volatiles
 
 ```{r volatile_prep, echo = F, include = FALSE}
 
@@ -602,7 +684,7 @@ cent.labels <- centroids %>%
 
 ```
 
-## Volatile Plot
+### Volatile Plot
 ```{r Volatile_plot, echo = F}
 
 ggplot(nmds_data, aes(x = MDS1, y = MDS2, 
@@ -634,7 +716,7 @@ ggplot(nmds_data, aes(x = MDS1, y = MDS2,
 
 
 
-# Session Information
+## Session Information
 
 ```{r Session_Info, echo = F, comment = ""}
 
