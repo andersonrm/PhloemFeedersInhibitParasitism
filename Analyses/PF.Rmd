@@ -234,6 +234,32 @@ kable(branchCIs, format = "markdown", digits = 2)
 
 ```
 
+```{r glmmtmb_branch}
+n_distinct(dat1$branchID); n_distinct(dat1$year); n_distinct(dat1$site);
+n_distinct(dat1$cat_species) ## Enough replication for branch and cat_sp to be
+# random. year and site need to be fixed.
+
+branch_tmbmod <- glmmTMB(para ~ pf_treatment * ant_treatment +
+                    year + site + (1|branchID) + (1|cat_species), 
+                    family = binomial, data = dat1)
+summary(branch_tmbmod) ## Hauck-Donner effect due to complete separation.
+## Using a parameteric bootstrap.
+branch_tmbsims <- simulate(branch_tmbmod, 999)
+library(parallel)
+cl <- makeCluster(detectCores()-1)
+clusterExport(cl, list("branch_tmbmod", "dat1"))
+clusterEvalQ(cl, library(glmmTMB))
+branch_tmbboot <- parSapplyLB(cl, branch_tmbsims, function(d){
+  simmod <- refit(branch_tmbmod, newresp=d[,1])
+  return(simmod)}, simplify=FALSE)
+branch_tmbcis <- cbind(fixef(branch_tmbmod)$cond, 
+                       t(apply(sapply(branch_tmbboot, 
+                                      function(m) fixef(m)$cond), 1,
+                       quantile, c(0.5, 0.025, 0.975))))
+                       
+branch_tmbcis                            
+```
+
 ## Recovery rates of stocked caterpillars
 
 ```{r recovery, echo = F}
