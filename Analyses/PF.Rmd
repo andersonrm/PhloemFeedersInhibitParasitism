@@ -241,8 +241,10 @@ n_distinct(dat1$cat_species) ## Enough replication for branch and cat_sp to be
 
 branch_tmbmod <- glmmTMB(para ~ pf_treatment * ant_treatment +
                     year + site + (1|branchID) + (1|cat_species), 
-                    family = binomial, data = dat1)
+                    family = binomial, data = dat1,
+                    contrasts=list(year = "contr.sum", site = "contr.sum"))
 summary(branch_tmbmod) ## Hauck-Donner effect due to complete separation.
+
 ## Using a parameteric bootstrap.
 branch_tmbsims <- simulate(branch_tmbmod, 999)
 library(parallel)
@@ -252,12 +254,21 @@ clusterEvalQ(cl, library(glmmTMB))
 branch_tmbboot <- parSapplyLB(cl, branch_tmbsims, function(d){
   simmod <- refit(branch_tmbmod, newresp=d[,1])
   return(simmod)}, simplify=FALSE)
-branch_tmbcis <- cbind(fixef(branch_tmbmod)$cond, 
+
+stopCluster(cl)
+
+branch_tmbcis <- cbind(Est = fixef(branch_tmbmod)$cond, 
                        t(apply(sapply(branch_tmbboot, 
                                       function(m) fixef(m)$cond), 1,
-                       quantile, c(0.5, 0.025, 0.975))))
+                       quantile, c(0.025, 0.975))))
                        
-branch_tmbcis                            
+kable(branch_tmbcis)
+
+## analysis of deviance
+## remove interaction
+branch_tmbmodH1 <- update(branch_tmbmod, ~.-ant_treatment:pf_treatment)
+branch_tmbmodH0 <- update(branch_tmbmodH1, ~.-pf_treatment)
+anova(branch_tmbmodH1, branch_tmbmodH0)
 ```
 
 ## Recovery rates of stocked caterpillars
