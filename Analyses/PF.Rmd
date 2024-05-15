@@ -271,6 +271,52 @@ branch_tmbmodH0 <- update(branch_tmbmodH1, ~.-pf_treatment)
 anova(branch_tmbmodH1, branch_tmbmodH0)
 ```
 
+
+## Figure 2 - branch version:
+
+### proportion recovered-all years
+```{r Figure_2_prop, echo = F}
+n_cats_treatment <- dat1 %>% 
+  group_by(pf_treatment, ant_treatment) %>% 
+  tally() %>% 
+  rename(ncats = n)
+
+fig2data <- dat1 %>% 
+  mutate(para = factor(para)) %>% 
+  group_by(pf_treatment, ant_treatment, para) %>% 
+  tally() %>% 
+  left_join(., n_cats_treatment,
+            by = c("pf_treatment", "ant_treatment")) %>% 
+  mutate(ant_treatment = case_when(
+    ant_treatment == "access" ~ "Ant access",
+    TRUE ~ "Ant exclusion"
+  ))
+
+fig2labels <- fig2data %>% 
+  filter(para == "1") %>% 
+  mutate(prop = round(100 * (n / ncats), 1),
+    label = paste0(prop, "%", sep = ""))
+
+fig2_prop <- fig2data %>%
+  ggplot(aes(x = pf_treatment, y = n/ncats, fill = para)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ ant_treatment) +
+  geom_text(data = fig2labels,
+            label = fig2labels$label,
+            nudge_y = -0.08) +
+  labs(x = "Phloem-feeder treatment",
+       y = "Prop. of caterpillars\nrecovered",
+       fill = "") +
+  scale_fill_manual(values = c("#56B4E9", "#D55E00"),
+                    labels = c("unparasitized", "parasitized")) +
+  theme_cowplot() +
+  theme(legend.title.align = 0.5,
+        strip.background = element_blank()) 
+
+fig2_prop
+
+```
+
 ## Recovery rates of stocked caterpillars
 
 ```{r recovery, echo = F}
@@ -287,8 +333,6 @@ rec.mod <- glm(prop_recovered ~ pf_treatment * ant_treatment +
 
 
 kable(tidy(rec.mod), format = "markdown", digits = 3)
-
-
 
 ```
 
