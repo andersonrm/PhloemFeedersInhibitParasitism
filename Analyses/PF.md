@@ -337,6 +337,18 @@ kable(andev_tab, format = "markdown", digits = 3)
 | year3                                      |    0.885 |     0.471 |     1.879 |   0.080 |
 | pf_treatmentreplaced:ant_treatmentexcluded |   -1.133 |     0.775 |    -1.463 |   0.164 |
 
+    ## Analysis of Deviance Table (Type II tests)
+    ## 
+    ## Response: prop_recovered
+    ##                            LR Chisq Df Pr(>Chisq)  
+    ## pf_treatment                 1.5392  1    0.21473  
+    ## ant_treatment                0.0272  1    0.86905  
+    ## site                         1.6462  3    0.64896  
+    ## year                         8.7939  3    0.03216 *
+    ## pf_treatment:ant_treatment   2.1861  1    0.13926  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
 ## Ants and Phloem-feeders:
 
 ### counts all years
