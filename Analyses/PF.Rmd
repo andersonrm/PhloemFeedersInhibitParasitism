@@ -528,6 +528,8 @@ cent.labels <- centroids %>%
 
 ```
 
+
+
 ### Volatile Plot
 ```{r Volatile_plot, echo = F}
 
@@ -604,9 +606,9 @@ chem_imp <- select(chem, pf_treatment, pf_species, block,
                   rownames(imp_vals_toppf), rownames(imp_vals_topsp))
 
 pf_aovs <- sapply(rownames(imp_vals_toppf), function(voc){
-  # form <- paste(voc, "~  pf_treatment * pf_species + (1|block)")
+  # form <- paste(voc, "~  pf_treatment + pf_species + (1|block)")
   # mod <- lmerTest::lmer(as.formula(form), data = chem_imp)
-  form <- paste(voc, "~  pf_treatment * pf_species + Error(block)") 
+  form <- paste(voc, "~  pf_treatment * pf_species + Error(block)")
   mod <- aov(as.formula(form), data= chem_imp)
 }, simplify = FALSE)
 
@@ -620,6 +622,13 @@ sp_aovs <- sapply(rownames(imp_vals_topsp), function(voc){
 
 lapply(pf_aovs, function(m) kable((summary(m)[[2]][[1]])))
 lapply(sp_aovs, function(m) kable(summary(m)[[2]][[1]]))
+
+
+## get out means and standard errors for each treatment combination
+group_by(chem,  pf_species, pf_treatment) |> 
+  summarise(across(rownames(imp_vals_toppf), 
+                   list(mean =mean, se = function(.x) sd(.x)/sqrt(length(.x)))))
+
 
 ## if using lme4 version, but aov is simpler.
 ## singularities due to 0 variance among blocks.

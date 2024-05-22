@@ -3,3 +3,4 @@
 *.RData
 *.Ruserdata
 Analyses/PF_cache/
+.Rproj.user
