@@ -118,7 +118,7 @@ The statistical approach uses Fisher tests wherever possible for simplicity. How
 
 # Experimental setup
 setup1 <- setup %>% 
-  select(branchID, type, treehoppers) %>% 
+  dplyr::select(branchID, type, treehoppers) %>% 
   distinct()
 
 all.branches <- setup1 %>% 
@@ -134,7 +134,7 @@ PF.branches <- setup1 %>%
             sd = sqrt(var(treehoppers)))
 
 cat.density <- setup %>% 
-  select(branchID, counts) %>% 
+  dplyr::select(branchID, counts) %>% 
   mutate(branchID = factor(branchID)) %>% 
   group_by(branchID) %>% 
   summarise(cats = sum(counts)) %>% 
@@ -148,7 +148,7 @@ ant.data <- ant.data %>%
   mutate(para = factor(para))
 
 ant.19.22 <- ant.data %>% 
-    select(ant.treat, para) %>% 
+    dplyr::select(ant.treat, para) %>% 
     group_by(ant.treat, para) %>% 
     tally()
 
@@ -194,12 +194,12 @@ totals <- para.all.years %>%
 
 # Phloem-feeder parasitism data by caterpillar species:
 para.pf1 <- para.by.spp %>% 
-    select(cat.sp,
+    dplyr::select(cat.sp,
            total.rem,
            para.rem) %>% 
     mutate(yes = para.rem,
            no = total.rem - para.rem) %>% 
-    select(cat.sp,
+    dplyr::select(cat.sp,
            yes,
            no) %>% 
     pivot_longer(!cat.sp,
@@ -208,13 +208,13 @@ para.pf1 <- para.by.spp %>%
     mutate(cat.sp = factor(cat.sp))
 
 para.pf2 <- para.by.spp %>% 
-    select(cat.sp,
+    dplyr::select(cat.sp,
            total.rep,
            para.rep) %>% 
     mutate(yes = para.rep,
            no = total.rep - para.rep,
            cat.sp = factor(cat.sp)) %>% 
-    select(cat.sp,
+    dplyr::select(cat.sp,
            yes,
            no) %>% 
     pivot_longer(!cat.sp,
@@ -226,7 +226,7 @@ para.pf2 <- para.by.spp %>%
 # natural density of phloem-feeders
 
 pf.dens <- raw2022 %>% 
-  select(Site, Number.of.leaves, Phloem.feeders.found,
+  dplyr::select(Site, Number.of.leaves, Phloem.feeders.found,
          Number.phloem.feeders, Density.phloem.feeders) %>% 
   mutate(membracid = if_else(grepl("mem", Phloem.feeders.found),
                              "yes", "no")) %>% 
@@ -413,32 +413,32 @@ AoD.results.ants <- car::Anova(ant.pf.mod)
 This figure is a visual representation of the logistic model approach (as opposed to Fisher's test). Here, we model the probability of parasitism as a function of ant treatment, phloem-feeder treatment, and their two-way interaction. Points and whiskers are means and 95% confidence intervals estimated from a parametric bootstrap from 1000 simulations of the posterior distribution of the binomial GLM. 
 ```{r ant_pf_logistic_model_parametric_CIs_fig, echo = F}
 
-# model:
-em1 <- emmeans(ant.pf.mod, ~mem.treat * ant.treat)
-
-
-em1cld <- cld(em1, type = "response",
-              letters = "abcde")
-
-em1cld <- as_tibble(em1cld)
-
-ggplot(plotres.ant, aes(x = treatment, y = parasitized,
-                        ymin = lcl, ymax = ucl)) +
-    geom_pointrange() +
-  theme_classic(base_size = 22) +
-  labs(x = "Phloem-feeder & Ant treatment",
-       y = "Probability of Parasitism")
-
-em1cld <- em1cld %>% 
-  unite(x, mem.treat, ant.treat, sep = "_")
-
-ggplot(em1cld, aes(x = x, y = prob)) +
-  geom_point(size = 2) + 
-  geom_errorbar(aes(ymin = prob - SE,
-                    ymax = prob + SE),
-                width = 0.2) +
-  ylim(0, .75) +
-  
+# # model:
+# em1 <- emmeans(ant.pf.mod, ~mem.treat * ant.treat)
+# 
+# 
+# em1cld <- cld(em1, type = "response",
+#               letters = "abcde")
+# 
+# em1cld <- as_tibble(em1cld)
+# 
+# ggplot(plotres.ant, aes(x = treatment, y = parasitized,
+#                         ymin = lcl, ymax = ucl)) +
+#     geom_pointrange() +
+#   theme_classic(base_size = 22) +
+#   labs(x = "Phloem-feeder & Ant treatment",
+#        y = "Probability of Parasitism")
+# 
+# em1cld <- em1cld %>% 
+#   unite(x, mem.treat, ant.treat, sep = "_")
+# 
+# ggplot(em1cld, aes(x = x, y = prob)) +
+#   geom_point(size = 2) + 
+#   geom_errorbar(aes(ymin = prob - SE,
+#                     ymax = prob + SE),
+#                 width = 0.2) +
+#   ylim(0, .75) +
+#   
 
 
 ```
@@ -535,9 +535,8 @@ ggplot(para.pf1,
            size = 7) +
   theme(text = element_text(size = 22)) +
   scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
-  theme(legend.position = c(.8, .5))
-    
-
+  theme(legend.position = c(.8, .5)) +
+  scale_y_continuous(labels = function(y) abs(y))
 
 ```
 

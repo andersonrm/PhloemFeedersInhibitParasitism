@@ -49,6 +49,7 @@ library(forcats)
 library(glmmTMB)
 library(vegan)
 library(tidymodels)
+library(sjPlot)
 
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # @@@@@ Data Preparation
@@ -64,6 +65,9 @@ rec.data <- read.csv("data/recovery.csv")
 
 # volatile data:
 chem <- read.csv("data/Mike_Trees_herbivores2.csv")
+
+# phloem-feeder counts (2022)
+pf_counts <- read.csv("data/pf_counts_2019_2022.csv")
 
 ####################################################
 #                    Functions                     #
@@ -152,9 +156,32 @@ chem <- chem %>%
   mutate(treatment.1 = ifelse(treatment.1 == "minus",
                               "removed", "replaced"))
 
-
+# phloem-feeder counts (2022)
+pf_counts <- pf_counts %>% 
+  mutate(across(c(site : branchID), as.factor))
 
 ```
+
+
+## Ant effects on phloem-feeder counts
+
+```{r pf_counts_by_ants, echo = F}
+
+pf_counts %>% 
+  ggplot(aes(x = ant_treatment, y = count_pf)) +
+  geom_boxplot() 
+
+
+pfc_mod <- glm(count_pf ~ ant_treatment + site,
+                   contrasts = list(site = "contr.sum"),
+                   family = poisson(),
+                   data = pf_counts)
+
+
+kable(tidy(anova(pfc_mod, test = "LRT")))
+
+```
+
 
 
 ## Branch level model for parasitism

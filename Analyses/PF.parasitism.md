@@ -1,7 +1,7 @@
 Phloem Feeding Insects Inhibit Caterpillar Parasitism
 ================
 Riley M. Anderson
-October 31, 2023
+June 18, 2024
 
 - [Overview](#overview)
   - [Summary of Results](#summary-of-results)
@@ -167,22 +167,6 @@ parasitism as a function of ant treatment, phloem-feeder treatment, and
 their two-way interaction. Points and whiskers are means and 95%
 confidence intervals estimated from a parametric bootstrap from 1000
 simulations of the posterior distribution of the binomial GLM.
-
-    ## 
-    ## Call:  glm(formula = para ~ mem.treat * ant.treat, family = binomial(), 
-    ##     data = ant.data)
-    ## 
-    ## Coefficients:
-    ##                         (Intercept)                    mem.treatreplaced  
-    ##                             -1.0116                             -18.5545  
-    ##                   ant.treatexcluded  mem.treatreplaced:ant.treatexcluded  
-    ##                             -0.5288                               0.5288  
-    ## 
-    ## Degrees of Freedom: 116 Total (i.e. Null);  113 Residual
-    ## Null Deviance:       85.7 
-    ## Residual Deviance: 66.48     AIC: 74.48
-
-![](PF.parasitism_files/figure-gfm/ant_pf_logistic_model_parametric_CIs_fig-1.png)<!-- -->
 
 - Caterpillars were only ever parasitized in the absence of
   phloem-feeders, and this effect was independent of ants.
