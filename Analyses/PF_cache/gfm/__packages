@@ -21,3 +21,16 @@ permute
 lattice
 vegan
 broom
+tidymodels
+scales
+dials
+infer
+modeldata
+parsnip
+recipes
+rsample
+tune
+workflows
+workflowsets
+yardstick
+randomForest
